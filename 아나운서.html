@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>아나운서 — 대본을 아나운서 목소리로 읽어주는 앱</title>
+<meta name="theme-color" content="#12151d">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+  :root {
+    --bg: #12151d;
+    --panel: #1c2029;
+    --panel2: #262b37;
+    --border: #363c4c;
+    --text: #eef1f7;
+    --text-dim: #9aa2b8;
+    --accent: #ff8a3d;
+    --accent2: #4f8cff;
+    --gold: #ffce54;
+    --danger: #ff5f6b;
+    --pink: #ff6f9c;
+    --blue: #56b0ff;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: radial-gradient(1200px 500px at 80% -10%, #232a3a 0%, var(--bg) 60%);
+    color: var(--text);
+    font-family: "Malgun Gothic", "맑은 고딕", system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+  }
+  header {
+    padding: 14px 22px; display: flex; align-items: center; gap: 14px;
+    border-bottom: 1px solid var(--border); flex-shrink: 0;
+    background: rgba(28,32,41,.6); backdrop-filter: blur(6px);
+  }
+  header h1 { font-size: 19px; font-weight: 800; display: flex; align-items: center; gap: 10px; letter-spacing: -.3px; }
+  .logo { width: 34px; height: 34px; border-radius: 9px; background: linear-gradient(135deg, var(--accent), var(--gold)); display: flex; align-items: center; justify-content: center; font-size: 19px; box-shadow: 0 4px 14px rgba(255,138,61,.35); }
+  header .sub { color: var(--text-dim); font-size: 12.5px; }
+  .spacer { flex: 1; }
+  .live-badge { display: none; align-items: center; gap: 7px; font-weight: 800; font-size: 12px; color: #fff; background: var(--danger); padding: 5px 12px; border-radius: 999px; letter-spacing: 1px; }
+  .live-badge.on { display: inline-flex; }
+  .live-badge .pulse { width: 8px; height: 8px; border-radius: 50%; background: #fff; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  main { flex: 1; display: flex; min-height: 0; }
+  .left { flex: 1; display: flex; flex-direction: column; min-width: 0; padding: 16px 18px; gap: 13px; }
+
+  .section-label { font-size: 11.5px; text-transform: uppercase; letter-spacing: .7px; color: var(--text-dim); font-weight: 800; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+
+  /* Language chips */
+  .langbar { display: flex; flex-wrap: wrap; gap: 7px; }
+  .lang { background: var(--panel); border: 1.5px solid var(--border); color: var(--text-dim); padding: 7px 13px; border-radius: 999px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all .13s; display: inline-flex; align-items: center; gap: 6px; }
+  .lang:hover { border-color: var(--accent); color: var(--text); }
+  .lang.active { border-color: var(--accent); background: rgba(255,138,61,.14); color: var(--text); }
+  .lang .flag { font-size: 15px; }
+
+  /* Announcer picker */
+  .ann-groups { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .ann-group { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; }
+  .ann-group .gh { font-size: 12.5px; font-weight: 700; margin-bottom: 9px; display: flex; align-items: center; gap: 7px; }
+  .ann-group.female .gh { color: var(--pink); }
+  .ann-group.male .gh { color: var(--blue); }
+  .ann-row { display: flex; gap: 8px; }
+  .ann { flex: 1; background: var(--panel2); border: 1.5px solid var(--border); border-radius: 9px; padding: 9px 6px; cursor: pointer; transition: all .13s; text-align: center; min-width: 0; }
+  .ann:hover:not(:disabled) { border-color: var(--accent); }
+  .ann:disabled { opacity: .35; cursor: not-allowed; }
+  .ann .face { font-size: 20px; }
+  .ann .who { font-size: 12px; font-weight: 700; margin-top: 3px; }
+  .ann .vname { font-size: 10px; color: var(--text-dim); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ann-group.female .ann.active { border-color: var(--pink); background: rgba(255,111,156,.16); }
+  .ann-group.male .ann.active { border-color: var(--blue); background: rgba(86,176,255,.16); }
+
+  /* IO row */
+  .io-row { display: flex; gap: 7px; flex-wrap: wrap; }
+  .chip { background: var(--panel2); border: 1px solid var(--border); color: var(--text-dim); padding: 7px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all .12s; }
+  .chip:hover:not(:disabled) { border-color: var(--accent); color: var(--text); }
+  .chip:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* Script */
+  .script-wrap { flex: 1; position: relative; min-height: 120px; }
+  #script, #overlay { position: absolute; inset: 0; width: 100%; height: 100%; padding: 18px 20px; font-size: 18px; line-height: 1.8; font-family: inherit; border-radius: var(--radius); border: 1px solid var(--border); white-space: pre-wrap; word-break: break-word; overflow-y: auto; }
+  #script { background: var(--panel); color: var(--text); resize: none; outline: none; z-index: 2; }
+  #script:focus { border-color: var(--accent); }
+  #script::placeholder { color: var(--text-dim); }
+  #script.reading { color: transparent; caret-color: transparent; }
+  #script.reading::placeholder { color: transparent; }
+  #overlay { z-index: 1; background: var(--panel); pointer-events: none; color: var(--text-dim); display: none; }
+  #overlay.on { display: block; }
+  #overlay .cur { background: rgba(255,138,61,.28); color: var(--text); border-radius: 4px; box-shadow: 0 0 0 2px rgba(255,138,61,.28); }
+  #overlay .done { color: #69708a; }
+
+  .transport { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  button.act { background: var(--panel2); border: 1px solid var(--border); color: var(--text); padding: 11px 18px; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 700; display: inline-flex; align-items: center; gap: 7px; transition: all .13s; }
+  button.act:hover { border-color: var(--accent); }
+  button.act:active { transform: translateY(1px); }
+  button.act.play { background: linear-gradient(135deg, var(--accent), #ff6f2d); border: none; color: #fff; padding: 11px 24px; font-size: 15px; box-shadow: 0 4px 14px rgba(255,138,61,.35); }
+  button.act.play:hover { filter: brightness(1.07); }
+  button.act:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+  button.act.rec { border-color: var(--danger); color: var(--danger); }
+  button.act.rec:hover { background: rgba(255,95,107,.12); }
+  button.act.rec.recording { background: var(--danger); color: #fff; border-color: var(--danger); animation: recblink 1.1s infinite; }
+  @keyframes recblink { 0%,100%{box-shadow:0 0 0 0 rgba(255,95,107,.5)} 50%{box-shadow:0 0 0 6px rgba(255,95,107,0)} }
+  .rec-result { display: none; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+  .rec-result.show { display: flex; }
+  .rec-result .rec-info { font-size: 13px; font-weight: 700; color: var(--gold); }
+  .rec-result audio { height: 34px; max-width: 260px; flex: 1; min-width: 160px; }
+  .progress { flex: 1; min-width: 100px; height: 7px; background: var(--panel2); border-radius: 999px; overflow: hidden; }
+  .progress .bar { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--gold)); transition: width .2s; }
+  .meta { color: var(--text-dim); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+
+  /* Right sidebar */
+  .right { width: 300px; background: var(--panel); border-left: 1px solid var(--border); padding: 18px; overflow-y: auto; flex-shrink: 0; display: flex; flex-direction: column; gap: 20px; }
+  .right h2 { font-size: 11.5px; text-transform: uppercase; letter-spacing: .7px; color: var(--text-dim); font-weight: 800; }
+  .field { display: flex; flex-direction: column; gap: 7px; }
+  .field > label { font-size: 13px; font-weight: 600; display: flex; justify-content: space-between; }
+  .field .val { color: var(--accent); font-weight: 800; font-variant-numeric: tabular-nums; }
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 3px; background: var(--panel2); outline: none; cursor: pointer; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 17px; height: 17px; border-radius: 50%; background: var(--accent); border: 2px solid var(--panel); box-shadow: 0 1px 4px rgba(0,0,0,.4); cursor: pointer; }
+  input[type=range]::-moz-range-thumb { width: 17px; height: 17px; border-radius: 50%; background: var(--accent); border: 2px solid var(--panel); cursor: pointer; }
+  .speed-presets { display: grid; grid-template-columns: repeat(5,1fr); gap: 5px; }
+  .speed-presets button { background: var(--panel2); border: 1px solid var(--border); color: var(--text-dim); border-radius: 7px; padding: 7px 2px; font-size: 11px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all .12s; }
+  .speed-presets button:hover { color: var(--text); border-color: var(--accent); }
+  .speed-presets button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .group { display: flex; flex-direction: column; gap: 12px; }
+  .styles { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .styles button { background: var(--panel2); border: 1px solid var(--border); color: var(--text-dim); border-radius: 8px; padding: 9px 6px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all .12s; }
+  .styles button:hover { color: var(--text); border-color: var(--accent); }
+  .styles button.active { background: rgba(255,138,61,.16); color: var(--text); border-color: var(--accent); }
+  .mini { font-size: 11px; color: var(--text-dim); line-height: 1.5; }
+  .mini b { color: var(--text); }
+  textarea.dict { background: var(--panel2); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 8px 10px; font-size: 12.5px; font-family: inherit; resize: vertical; outline: none; line-height: 1.5; }
+  textarea.dict:focus { border-color: var(--accent); }
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .switch { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; inset: 0; background: var(--panel2); border: 1px solid var(--border); border-radius: 999px; cursor: pointer; transition: .2s; }
+  .slider::before { content: ""; position: absolute; height: 16px; width: 16px; left: 3px; top: 3px; background: var(--text-dim); border-radius: 50%; transition: .2s; }
+  .switch input:checked + .slider { background: var(--accent); border-color: var(--accent); }
+  .switch input:checked + .slider::before { transform: translateX(18px); background: #fff; }
+  .hr { height: 1px; background: var(--border); }
+  .hint { background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; padding: 11px 13px; font-size: 12px; color: var(--text-dim); line-height: 1.6; }
+  .hint b { color: var(--text); }
+  .samples { display: flex; flex-wrap: wrap; gap: 7px; }
+  .samples button { background: var(--panel2); border: 1px solid var(--border); color: var(--text-dim); padding: 6px 11px; border-radius: 999px; font-size: 12px; cursor: pointer; font-family: inherit; }
+  .samples button:hover { border-color: var(--accent); color: var(--text); }
+  .banner { background: rgba(255,206,84,.12); border: 1px solid var(--gold); color: var(--gold); padding: 10px 14px; border-radius: 8px; font-size: 12.5px; display: none; }
+  .banner.show { display: block; }
+
+  @media (max-width: 900px) { .right { display: none; } main { flex-direction: column; } .ann-groups { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="logo">🎙️</span> 아나운서</h1>
+  <span class="sub">대본을 아나운서 목소리로 읽어드립니다</span>
+  <span class="spacer"></span>
+  <span class="live-badge" id="liveBadge"><span class="pulse"></span> ON AIR</span>
+</header>
+
+<main>
+  <section class="left">
+    <div class="banner" id="voiceBanner"></div>
+
+    <div>
+      <div class="section-label">🌐 언어</div>
+      <div class="langbar" id="langbar"></div>
+    </div>
+
+    <div>
+      <div class="section-label">🎧 아나운서 선택 (남·여 3명씩)</div>
+      <div class="ann-groups">
+        <div class="ann-group female">
+          <div class="gh">👩‍💼 여성 아나운서</div>
+          <div class="ann-row" id="femaleRow"></div>
+        </div>
+        <div class="ann-group male">
+          <div class="gh">👨‍💼 남성 아나운서</div>
+          <div class="ann-row" id="maleRow"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="io-row">
+      <button class="chip" id="importBtn">📄 불러오기(.txt)</button>
+      <button class="chip" id="pasteBtn">📋 붙여넣기</button>
+      <button class="chip" id="srtBtn" disabled title="한 번 방송을 재생하면 타이밍이 생성됩니다.">💬 자막 저장(SRT)</button>
+      <button class="chip" id="vttBtn" disabled>💬 VTT</button>
+      <input type="file" id="fileInput" accept=".txt,text/plain" hidden>
+    </div>
+    <div class="script-wrap">
+      <div id="overlay"></div>
+      <textarea id="script" placeholder="여기에 대본을 붙여넣거나 입력하세요."></textarea>
+    </div>
+
+    <div class="transport">
+      <button class="act play" id="playBtn">▶ 방송 시작</button>
+      <button class="act" id="pauseBtn" disabled>⏸ 일시정지</button>
+      <button class="act" id="stopBtn" disabled>⏹ 정지</button>
+      <button class="act rec" id="recBtn">🔴 녹음</button>
+      <button class="act" id="testBtn">🔊 미리듣기</button>
+      <div class="progress"><div class="bar" id="bar"></div></div>
+      <span class="meta" id="meta">0 / 0 문장</span>
+    </div>
+
+    <div class="rec-result" id="recResult">
+      <span class="rec-info" id="recInfo">🎧 녹음 완료</span>
+      <audio id="recAudio" controls></audio>
+      <button class="act" id="downloadBtn">⬇ 다운로드</button>
+      <button class="act" id="wavBtn">⬇ WAV</button>
+      <button class="act" id="shareBtn">🔗 공유</button>
+      <button class="act" id="recCloseBtn">✕</button>
+    </div>
+  </section>
+
+  <aside class="right">
+    <div class="group">
+      <h2>낭독 스타일</h2>
+      <div class="styles" id="styles">
+        <button data-k="anchor" class="active">📺 뉴스 앵커</button>
+        <button data-k="calm">🎬 차분한 내레이션</button>
+        <button data-k="bright">✨ 발랄하게</button>
+        <button data-k="notice">📢 안내 방송</button>
+      </div>
+    </div>
+
+    <div class="hr"></div>
+
+    <div class="group">
+      <h2>말하기 속도</h2>
+      <div class="speed-presets" id="speedPresets">
+        <button data-r="0.7">아주<br>느리게</button>
+        <button data-r="0.85">느리게</button>
+        <button data-r="1" class="active">보통</button>
+        <button data-r="1.2">빠르게</button>
+        <button data-r="1.4">아주<br>빠르게</button>
+      </div>
+      <div class="field"><label for="rate">세밀 조절 <span class="val" id="rateVal">1.00×</span></label><input type="range" id="rate" min="0.5" max="1.7" step="0.05" value="1"></div>
+    </div>
+
+    <div class="hr"></div>
+
+    <div class="group">
+      <h2>세부 조절</h2>
+      <div class="field"><label for="pitch">음높이 <span class="val" id="pitchVal">1.00</span></label><input type="range" id="pitch" min="0.5" max="1.5" step="0.05" value="1"></div>
+      <div class="field"><label for="volume">볼륨 <span class="val" id="volumeVal">100%</span></label><input type="range" id="volume" min="0" max="1" step="0.05" value="1"></div>
+      <div class="field"><label for="gap">문장 사이 쉼 <span class="val" id="gapVal">0.4초</span></label><input type="range" id="gap" min="0" max="1.5" step="0.1" value="0.4"></div>
+    </div>
+
+    <div class="hr"></div>
+
+    <div class="group">
+      <h2>발음 교정</h2>
+      <div class="toggle-row"><span>숫자·단위 자동 읽기</span><label class="switch"><input type="checkbox" id="normChk" checked><span class="slider"></span></label></div>
+      <div class="mini">2024년 → "이천이십사 년", ₩1,500 → "천오백 원", 010-1234-5678 → 자릿수 읽기</div>
+      <div class="toggle-row"><span>숫자를 한 자리씩</span><label class="switch"><input type="checkbox" id="digitChk"><span class="slider"></span></label></div>
+      <div class="field" style="margin-top:4px">
+        <label for="dict">발음 사전 <span class="mini" style="font-weight:400">한 줄에 <b>원말=바꿀말</b></span></label>
+        <textarea id="dict" class="dict" rows="3" placeholder="AI=에이아이&#10;LG=엘지&#10;나이키=나이키"></textarea>
+      </div>
+    </div>
+
+    <div class="hr"></div>
+
+    <div class="group">
+      <h2>대화 모드</h2>
+      <div class="toggle-row"><span>여러 명이 번갈아 읽기</span><label class="switch"><input type="checkbox" id="dialogChk"><span class="slider"></span></label></div>
+      <div class="mini">줄 앞에 화자를 적으면 그 아나운서 목소리로 읽습니다.<br>예) <b>남1:</b> 안녕하세요 / <b>여2:</b> 반갑습니다 (남·여 + 1~3)</div>
+      <button class="chip" id="dialogSample" style="align-self:flex-start">🗣 대화 예시 넣기</button>
+    </div>
+
+    <div class="hr"></div>
+
+    <div class="group">
+      <h2>배경음악</h2>
+      <div class="io-row">
+        <button class="chip" id="bgmBtn">🎵 음악 불러오기</button>
+        <button class="chip" id="bgmClear" disabled>✕ 제거</button>
+      </div>
+      <div class="mini" id="bgmName">불러온 음악 없음 · CC0/로열티프리 파일만 사용하세요.</div>
+      <div class="toggle-row"><span>재생 중 배경음악</span><label class="switch"><input type="checkbox" id="bgmChk"><span class="slider"></span></label></div>
+      <div class="field"><label for="bgmVol">배경음악 볼륨 <span class="val" id="bgmVolVal">20%</span></label><input type="range" id="bgmVol" min="0" max="1" step="0.05" value="0.2"></div>
+      <input type="file" id="bgmInput" accept="audio/*" hidden>
+    </div>
+
+    <div class="hr"></div>
+
+    <div class="group">
+      <h2>옵션</h2>
+      <div class="toggle-row"><span>시작 알림음 (딩동댕)</span><label class="switch"><input type="checkbox" id="chimeChk"><span class="slider"></span></label></div>
+      <div class="toggle-row"><span>문장 하이라이트</span><label class="switch"><input type="checkbox" id="hlChk" checked><span class="slider"></span></label></div>
+    </div>
+
+    <div class="hr"></div>
+
+    <div class="field">
+      <h2>예시 대본</h2>
+      <div class="samples" id="samples">
+        <button data-s="news">뉴스</button>
+        <button data-s="announce">안내방송</button>
+        <button data-s="greeting">인사</button>
+        <button data-s="numbers">숫자 1~12</button>
+      </div>
+    </div>
+
+    <div class="hint" id="voiceHint">
+      <b>더 자연스러운 목소리 팁</b><br>
+      이름에 <b>Natural·Online·Google</b>이 들어간 음성이 가장 아나운서에 가깝습니다. 언어별로 설치된 음성이 다르며, 없는 언어는 시스템에서 추가할 수 있습니다.
+    </div>
+  </aside>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  const synth = window.speechSynthesis;
+  const $ = (id) => document.getElementById(id);
+  const script = $("script"), overlay = $("overlay"), bar = $("bar"), meta = $("meta");
+  const liveBadge = $("liveBadge"), voiceBanner = $("voiceBanner");
+
+  // ---------- Languages ----------
+  const LANGS = [
+    { code: "ko", name: "한국어", flag: "🇰🇷" },
+    { code: "en", name: "영어",   flag: "🇺🇸" },
+    { code: "de", name: "독일어", flag: "🇩🇪" },
+    { code: "pt", name: "포르투갈어", flag: "🇵🇹" },
+    { code: "es", name: "스페인어", flag: "🇪🇸" },
+    { code: "id", name: "인도네시아어", flag: "🇮🇩" },
+    { code: "zh", name: "중국어", flag: "🇨🇳" },
+    { code: "fr", name: "프랑스어", flag: "🇫🇷" },
+  ];
+  // 언어별 예시 대본 (뉴스 / 안내방송 / 인사)
+  const SAMPLES = {
+    ko: { news: "안녕하십니까. 오늘의 주요 뉴스를 전해 드리겠습니다. 전국 대부분 지역이 맑겠습니다. 자세한 소식은 잠시 후 전해 드리겠습니다.",
+          announce: "안내 말씀 드립니다. 잠시 후 열차가 도착하겠습니다. 노란 선 안쪽에서 기다려 주시기 바랍니다.",
+          greeting: "안녕하세요. 만나서 반갑습니다. 좋은 하루 보내세요.",
+          numbers: "하나. 둘. 셋. 넷. 다섯. 여섯. 일곱. 여덟. 아홉. 열. 열하나. 열둘." },
+    en: { news: "Good evening. Here are today's top stories. Clear skies are expected across most of the country. More details in a moment.",
+          announce: "Attention please. The train will arrive shortly. Please stand behind the yellow line. Thank you.",
+          greeting: "Hello. It's a pleasure to meet you. Have a wonderful day.",
+          numbers: "One. Two. Three. Four. Five. Six. Seven. Eight. Nine. Ten. Eleven. Twelve." },
+    de: { news: "Guten Abend. Hier sind die wichtigsten Nachrichten des Tages. Im ganzen Land wird es überwiegend heiter. Mehr dazu in Kürze.",
+          announce: "Achtung, eine Durchsage. Der Zug fährt in Kürze ein. Bitte treten Sie hinter die gelbe Linie. Vielen Dank.",
+          greeting: "Hallo. Schön, Sie kennenzulernen. Einen schönen Tag noch.",
+          numbers: "Eins. Zwei. Drei. Vier. Fünf. Sechs. Sieben. Acht. Neun. Zehn. Elf. Zwölf." },
+    pt: { news: "Boa noite. Estas são as principais notícias de hoje. Espera-se céu limpo na maior parte do país. Mais detalhes a seguir.",
+          announce: "Atenção, por favor. O comboio chegará em breve. Mantenha-se atrás da linha amarela. Obrigado.",
+          greeting: "Olá. Prazer em conhecê-lo. Tenha um ótimo dia.",
+          numbers: "Um. Dois. Três. Quatro. Cinco. Seis. Sete. Oito. Nove. Dez. Onze. Doze." },
+    es: { news: "Buenas noches. Estas son las noticias más importantes de hoy. Se espera cielo despejado en gran parte del país. Más detalles enseguida.",
+          announce: "Atención, por favor. El tren llegará en breve. Manténgase detrás de la línea amarilla. Gracias.",
+          greeting: "Hola. Encantado de conocerle. Que tenga un buen día.",
+          numbers: "Uno. Dos. Tres. Cuatro. Cinco. Seis. Siete. Ocho. Nueve. Diez. Once. Doce." },
+    id: { news: "Selamat malam. Berikut berita utama hari ini. Cuaca cerah diperkirakan di sebagian besar wilayah. Selengkapnya sebentar lagi.",
+          announce: "Perhatian. Kereta akan segera tiba. Mohon berdiri di belakang garis kuning. Terima kasih.",
+          greeting: "Halo. Senang bertemu dengan Anda. Semoga hari Anda menyenangkan.",
+          numbers: "Satu. Dua. Tiga. Empat. Lima. Enam. Tujuh. Delapan. Sembilan. Sepuluh. Sebelas. Dua belas." },
+    zh: { news: "晚上好。以下是今天的主要新闻。全国大部分地区天气晴朗。详细内容稍后为您播报。",
+          announce: "请注意。列车即将到站。请站在黄线后方。谢谢。",
+          greeting: "您好。很高兴认识您。祝您有美好的一天。",
+          numbers: "一。二。三。四。五。六。七。八。九。十。十一。十二。" },
+    fr: { news: "Bonsoir. Voici les principales informations du jour. Un ciel dégagé est attendu sur la majeure partie du pays. Plus de détails dans un instant.",
+          announce: "Votre attention s'il vous plaît. Le train arrive dans un instant. Veuillez rester derrière la ligne jaune. Merci.",
+          greeting: "Bonjour. Ravi de vous rencontrer. Passez une excellente journée.",
+          numbers: "Un. Deux. Trois. Quatre. Cinq. Six. Sept. Huit. Neuf. Dix. Onze. Douze." },
+  };
+  const TEST_LINE = {
+    ko: "안녕하십니까, 아나운서입니다.", en: "Hello, this is your announcer.",
+    de: "Guten Tag, hier ist Ihr Sprecher.", pt: "Olá, aqui é o seu locutor.",
+    es: "Hola, soy su locutor.", id: "Halo, ini penyiar Anda.",
+    zh: "您好，我是播音员。", fr: "Bonjour, voici votre présentateur.",
+  };
+
+  // ---------- Gender heuristics (known TTS voice names) ----------
+  const FEMALE_TOKENS = ["heami","sunhi","yuna","aria","jenny","michelle","ana","zira","hazel","sonia","libby","susan","catherine","linda","eva","katja","amala","hedda","ingrid","elvira","dalia","helena","laura","elena","paloma","monica","francisca","brenda","raquel","fernanda","luciana","gadis","xiaoxiao","xiaoyi","huihui","yaoyao","xiaohan","denise","eloise","vivienne","hortense","julie","amelie","samantha","victoria","karen","moira","tessa","fiona","veena","female","weiblich","femme","mujer","여성","여자"];
+  const MALE_TOKENS = ["injoon","guy","davis","tony","jason","david","mark","brian","eric","roger","steffan","conrad","killian","stefan","bernd","alvaro","jorge","pablo","dario","antonio","donato","fabio","duarte","ardi","yunyang","yunxi","yunjian","kangkang","henri","remy","paul","thomas","claude","daniel","alex","fred","oliver","diego","male","männlich","homme","hombre","남성","남자"];
+  function detectGender(v) {
+    const n = (v.name || "").toLowerCase();
+    if (FEMALE_TOKENS.some(t => n.includes(t))) return "F";
+    if (MALE_TOKENS.some(t => n.includes(t))) return "M";
+    return "?";
+  }
+  function qualityRank(v) {
+    const n = (v.name + " " + v.voiceURI).toLowerCase();
+    let s = 0;
+    if (/natural|neural/.test(n)) s += 100;
+    if (/online/.test(n)) s += 40;
+    if (/google/.test(n)) s += 60;
+    return s;
+  }
+  function isPremium(v) { return qualityRank(v) >= 60; }
+
+  // ---------- State ----------
+  const state = {
+    lang: "ko",
+    gender: "F", slotIndex: 0,   // 선택된 아나운서
+    voiceURI: null, slotPitch: 1,
+    style: "anchor",
+    rate: 1, pitch: 1, volume: 1, gap: 0.4,
+    chime: false, highlight: true,
+    normalize: true, digitByDigit: false, dict: "",
+    dialogue: false, bgmOn: false, bgmVolume: 0.2,
+  };
+
+  // ---------- 낭독 스타일 프리셋 (rate/pitch/gap/chime 묶음) ----------
+  const STYLES = {
+    anchor: { rate: 0.95, pitch: 1.0,  gap: 0.5, chime: false },
+    calm:   { rate: 0.88, pitch: 0.95, gap: 0.7, chime: false },
+    bright: { rate: 1.15, pitch: 1.08, gap: 0.25, chime: false },
+    notice: { rate: 0.85, pitch: 1.0,  gap: 0.8, chime: true  },
+  };
+
+  // ---------- 한국어 숫자/단위 정규화 ----------
+  const SINO = ["","일","이","삼","사","오","육","칠","팔","구"];
+  const SMALL = ["","십","백","천"];
+  const BIG = ["","만","억","조","경"];
+  function numToSino(digits) {
+    let s = String(digits).replace(/[^0-9]/g, "");
+    if (s === "") return String(digits);
+    s = s.replace(/^0+(?=\d)/, "");           // 앞자리 0 제거
+    if (s === "0" || s === "") return "영";
+    // 4자리씩 그룹
+    const groups = [];
+    let tmp = s;
+    while (tmp.length > 0) { groups.unshift(tmp.slice(-4)); tmp = tmp.slice(0, -4); }
+    const gc = groups.length;
+    let out = "";
+    groups.forEach((g, gi) => {
+      const gv = parseInt(g, 10);
+      if (gv === 0) return;
+      const gd = String(gv); const len = gd.length;
+      let gs = "";
+      for (let i = 0; i < len; i++) {
+        const d = +gd[i]; const pos = len - 1 - i; // 0..3
+        if (d === 0) continue;
+        gs += (d === 1 && pos > 0) ? SMALL[pos] : SINO[d] + SMALL[pos];  // 십/백/천 앞의 일 생략
+      }
+      out += gs + BIG[gc - 1 - gi];
+    });
+    return out;
+  }
+  function digitByDigitKo(str, zeroWord) {
+    const z = zeroWord || "영";
+    return String(str).replace(/[^0-9]/g, "").split("").map(c => c === "0" ? z : SINO[+c]).join(" ");
+  }
+  function readDecimal(m) {
+    const [ip, fp] = m.split(".");
+    return numToSino(ip) + " 점 " + digitByDigitKo(fp);
+  }
+  function readNumMaybeDecimal(n) { return /\./.test(n) ? readDecimal(n) : numToSino(n); }
+  function normalizeKorean(text) {
+    let t = text;
+    // 전화번호: 010-1234-5678 등 → 자릿수(0=공)
+    t = t.replace(/(?<!\d)(0\d{1,2})[-.\s](\d{3,4})[-.\s](\d{4})(?!\d)/g, (m,a,b,c) => digitByDigitKo(a+b+c, "공"));
+    // 통화: ₩1,500 / 1,500원
+    t = t.replace(/₩\s?([\d,]+)/g, (m,n) => numToSino(n) + " 원");
+    t = t.replace(/([\d,]+)\s?원/g, (m,n) => numToSino(n) + " 원");
+    // 퍼센트
+    t = t.replace(/([\d,]+(?:\.\d+)?)\s?%/g, (m,n) => readNumMaybeDecimal(n.replace(/,/g,"")) + " 퍼센트");
+    // 소수
+    t = t.replace(/(?<!\d)(\d+\.\d+)(?!\d)/g, (m) => readDecimal(m));
+    // 일반 정수(콤마 포함)
+    t = t.replace(/(?<!\d)(\d{1,3}(?:,\d{3})+|\d+)(?!\d)/g, (m) => state.digitByDigit ? digitByDigitKo(m) : numToSino(m));
+    return t;
+  }
+  // 발음 사전 + 정규화 적용
+  function parseDict() {
+    const pairs = [];
+    (state.dict || "").split(/\r?\n/).forEach(line => {
+      const i = line.indexOf("=");
+      if (i > 0) { const from = line.slice(0, i).trim(); const to = line.slice(i+1).trim(); if (from) pairs.push([from, to]); }
+    });
+    return pairs;
+  }
+  function applyDict(text) {
+    let t = text;
+    parseDict().forEach(([from, to]) => { if (t.includes(from)) t = t.split(from).join(to); });
+    return t;
+  }
+  function preprocess(text) {
+    let t = applyDict(text);
+    if (state.normalize && state.lang === "ko") t = normalizeKorean(t);
+    return t;
+  }
+
+  let voices = [];
+  let slots = { F: [null,null,null], M: [null,null,null] };
+
+  function langVoices(code) {
+    return voices.filter(v => {
+      const l = (v.lang || "").toLowerCase().replace("_","-");
+      if (code === "zh") return l.startsWith("zh") || l.startsWith("cmn") || l.startsWith("yue");
+      return l.startsWith(code);
+    });
+  }
+
+  const SLOT_VAR = [0, -0.06, 0.06]; // 슬롯별 미세 음높이 차이 → 세 명이 다르게 들리게
+  function makeSlot(list, all, gender, i) {
+    const varr = SLOT_VAR[i];
+    if (list[i]) return { uri: list[i].voiceURI, name: list[i].name, pitch: 1 + varr, sim: false };
+    if (list.length) { const v = list[i % list.length]; return { uri: v.voiceURI, name: v.name, pitch: (gender==="F"?1.1:0.9) + varr, sim: false }; }
+    if (all.length) { const v = all[i % all.length]; return { uri: v.voiceURI, name: v.name, pitch: (gender==="F"?1.28:0.78) + varr, sim: true }; }
+    return null;
+  }
+
+  function buildSlots() {
+    const lv = langVoices(state.lang);
+    // 품질순 정렬
+    lv.sort((a,b) => qualityRank(b) - qualityRank(a) || a.name.localeCompare(b.name));
+    let females = [], males = [], unknown = [];
+    lv.forEach(v => { const g = detectGender(v); if (g==="F") females.push(v); else if (g==="M") males.push(v); else unknown.push(v); });
+    // 성별 미상은 부족한 쪽에 분배
+    unknown.forEach(v => { (females.length <= males.length ? females : males).push(v); });
+    slots.F = [0,1,2].map(i => makeSlot(females, lv, "F", i));
+    slots.M = [0,1,2].map(i => makeSlot(males, lv, "M", i));
+    renderSlots(lv.length === 0);
+    applySlotSelection();
+  }
+
+  function renderSlots(noVoices) {
+    const faces = { F: ["👩","👩‍🦰","🧑‍🦱"], M: ["👨","🧔","👨‍🦰"] };
+    [["F","femaleRow"],["M","maleRow"]].forEach(([g, rowId]) => {
+      const row = $(rowId); row.innerHTML = "";
+      slots[g].forEach((slot, i) => {
+        const b = document.createElement("button");
+        b.className = "ann"; b.dataset.g = g; b.dataset.i = i;
+        b.disabled = !slot;
+        const nameTxt = slot ? (slot.name + (slot.sim ? " · 음높이조정" : (isPremiumURI(slot.uri) ? " ⭐" : ""))) : "음성 없음";
+        b.innerHTML = `<div class="face">${faces[g][i]}</div><div class="who">${g==="F"?"여성":"남성"} ${i+1}</div><div class="vname" title="${escapeAttr(nameTxt)}">${escapeHtml(shorten(nameTxt))}</div>`;
+        row.appendChild(b);
+      });
+    });
+    // 배너
+    if (!synth) { showBanner("⚠️ 이 브라우저는 음성 합성을 지원하지 않습니다. Chrome/Edge 최신 버전을 사용하세요."); }
+    else if (noVoices) { showBanner(`ℹ️ '${langName(state.lang)}' 음성이 설치되어 있지 않습니다. Windows 설정 → 시간 및 언어 → 음성, 또는 Edge에서 온라인(Natural) 음성을 사용해 보세요.`); }
+    else hideBanner();
+  }
+  function isPremiumURI(uri){ const v = voices.find(x=>x.voiceURI===uri); return v && isPremium(v); }
+  function shorten(s){ return s.length > 22 ? s.slice(0,20)+"…" : s; }
+
+  // 현재 상태에 맞는 슬롯 선택 반영
+  function applySlotSelection() {
+    let slot = slots[state.gender] && slots[state.gender][state.slotIndex];
+    if (!slot) {
+      // 다른 성별/인덱스에서 사용 가능한 첫 슬롯 선택
+      outer: for (const g of ["F","M"]) for (let i=0;i<3;i++) if (slots[g][i]) { state.gender=g; state.slotIndex=i; slot=slots[g][i]; break outer; }
+    }
+    if (slot) { state.voiceURI = slot.uri; state.slotPitch = slot.pitch; }
+    else { state.voiceURI = null; state.slotPitch = 1; }
+    document.querySelectorAll(".ann").forEach(b => b.classList.toggle("active", b.dataset.g===state.gender && +b.dataset.i===state.slotIndex));
+    updateVoiceHint(slot);
+    save();
+  }
+  function updateVoiceHint(slot){
+    const el = $("voiceHint");
+    if (!slot) return;
+    const v = voices.find(x=>x.voiceURI===slot.uri);
+    if (!v) return;
+    const tips = [];
+    if (isPremium(v)) tips.push("⭐ 자연스러운 고품질 음성입니다.");
+    else tips.push("기본 음성입니다. Edge의 Online(Natural) 음성이 더 자연스럽습니다.");
+    if (slot.sim) tips.push("이 언어에 해당 성별 음성이 없어 음높이를 조정해 표현합니다.");
+    el.innerHTML = `<b>${escapeHtml(v.name)}</b> (${v.lang})<br>${tips.map(escapeHtml).join("<br>")}`;
+  }
+
+  // ---------- Voice loading ----------
+  function loadVoices() {
+    voices = synth ? synth.getVoices() : [];
+    buildSlots();
+  }
+  if (synth) { loadVoices(); synth.onvoiceschanged = loadVoices; } else { loadVoices(); }
+
+  function getVoice() { return voices.find(v => v.voiceURI === state.voiceURI) || null; }
+  function effPitch() { return Math.min(2, Math.max(0, state.pitch * state.slotPitch)); }
+
+  // ---------- Language bar ----------
+  const langbar = $("langbar");
+  LANGS.forEach(L => {
+    const b = document.createElement("button");
+    b.className = "lang" + (L.code===state.lang ? " active":"");
+    b.dataset.code = L.code;
+    b.innerHTML = `<span class="flag">${L.flag}</span>${L.name}`;
+    langbar.appendChild(b);
+  });
+  langbar.addEventListener("click", (e) => {
+    const b = e.target.closest(".lang"); if (!b) return;
+    state.lang = b.dataset.code;
+    document.querySelectorAll(".lang").forEach(x => x.classList.toggle("active", x===b));
+    buildSlots();
+    save();
+  });
+  function langName(code){ const L = LANGS.find(x=>x.code===code); return L?L.name:code; }
+
+  // ---------- Announcer selection ----------
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest(".ann"); if (!b || b.disabled) return;
+    state.gender = b.dataset.g; state.slotIndex = +b.dataset.i;
+    applySlotSelection();
+  });
+
+  // ---------- Sentence splitting ----------
+  // ---------- 대화 모드: 화자 태그 ----------
+  const TAG_RE = /^\s*\[?\s*(남성|여성|남자|여자|남|여|male|female|man|woman|m|f)\s*([1-3])?\s*\]?\s*[:：]\s*/i;
+  function resolveSpeaker(tag, num) {
+    const t = tag.toLowerCase();
+    const gender = /^(여|여성|여자|female|woman|f)$/.test(t) ? "F" : "M";
+    const index = num ? Math.min(2, Math.max(0, parseInt(num,10)-1)) : 0;
+    return { gender, index };
+  }
+
+  const MAX_CHUNK = 180; // 긴 문장은 잘라 Chrome 발화 멈춤 방지
+  function splitSentences(text) {
+    if (!text.trim()) return [];
+    const result = [];
+    const parts = text.split(/(?<=[.!?。！？])\s+|\n+/);
+    let idx = 0;
+    for (const p of parts) {
+      const s = p.trim(); if (!s) continue;
+      const start = text.indexOf(p, idx); const realStart = start >= 0 ? start : idx;
+      // 너무 긴 문장은 쉼표/공백 기준으로 하위 분할(원문 위치 유지)
+      if (p.length > MAX_CHUNK) {
+        const re = /[^,，、]+[,，、]?\s*/g; let m; let acc = ""; let accStart = realStart;
+        const flush = (endPos) => { const t = acc.trim(); if (t) result.push({ text: t, start: accStart, end: endPos }); acc = ""; };
+        let cursorPos = realStart;
+        while ((m = re.exec(p)) !== null) {
+          if (acc && (acc.length + m[0].length) > MAX_CHUNK) flush(cursorPos);
+          if (!acc) accStart = realStart + m.index;
+          acc += m[0]; cursorPos = realStart + m.index + m[0].length;
+        }
+        flush(realStart + p.length);
+      } else {
+        result.push({ text: s, start: realStart, end: realStart + p.length });
+      }
+      idx = realStart + p.length;
+    }
+    // 대화 모드: 각 조각의 화자 결정(태그 없으면 직전 화자 이어받기)
+    if (state.dialogue) {
+      let last = null;
+      result.forEach(item => {
+        const m = item.text.match(TAG_RE);
+        if (m) { item.speaker = resolveSpeaker(m[1], m[2]); last = item.speaker; item.text = item.text.replace(TAG_RE, "").trim(); }
+        else if (last) item.speaker = last;
+      });
+    }
+    return result.filter(it => it.text.length > 0);
+  }
+
+  // ---------- Chime ----------
+  let audioCtx = null;
+  function playChime() {
+    return new Promise((resolve) => {
+      try {
+        audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+        const ctx = audioCtx, now = ctx.currentTime;
+        const notes = [ {f:659.25,t:0}, {f:783.99,t:0.28}, {f:1046.5,t:0.56} ];
+        notes.forEach(n => {
+          const o = ctx.createOscillator(), g = ctx.createGain();
+          o.type = "sine"; o.frequency.value = n.f; o.connect(g); g.connect(ctx.destination);
+          const t0 = now + n.t;
+          g.gain.setValueAtTime(0, t0);
+          g.gain.linearRampToValueAtTime(0.28 * state.volume, t0 + 0.03);
+          g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.5);
+          o.start(t0); o.stop(t0 + 0.55);
+        });
+        setTimeout(resolve, 950);
+      } catch (_) { resolve(); }
+    });
+  }
+
+  // ---------- Playback ----------
+  let queue = [], cursor = -1, playing = false, gapTimer = null;
+  let playT0 = 0, cuesReady = false;
+
+  function setTransport(on) {
+    playing = on;
+    $("playBtn").disabled = on; $("pauseBtn").disabled = !on; $("stopBtn").disabled = !on;
+    liveBadge.classList.toggle("on", on);
+    script.classList.toggle("reading", on && state.highlight);
+    overlay.classList.toggle("on", on && state.highlight);
+  }
+  function escapeHtml(s){ return String(s).replace(/[&<>]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+  function escapeAttr(s){ return String(s).replace(/"/g,"&quot;"); }
+
+  function renderOverlay() {
+    if (!state.highlight) return;
+    const full = script.value; let html = "", pos = 0;
+    queue.forEach((q, i) => {
+      if (q.start > pos) html += escapeHtml(full.slice(pos, q.start));
+      const cls = i < cursor ? "done" : (i === cursor ? "cur" : "");
+      html += `<span class="${cls}">${escapeHtml(full.slice(q.start, q.end))}</span>`;
+      pos = q.end;
+    });
+    if (pos < full.length) html += escapeHtml(full.slice(pos));
+    overlay.innerHTML = html;
+    const cur = overlay.querySelector(".cur"); if (cur) cur.scrollIntoView({ block: "nearest" });
+  }
+  function updateMeta() {
+    meta.textContent = `${Math.max(0,cursor+(playing?1:0))} / ${queue.length} 문장`;
+    bar.style.width = (queue.length ? (playing ? Math.min(100,((cursor+1)/queue.length)*100) : (Math.max(0,cursor)/queue.length)*100) : 0) + "%";
+  }
+  function voiceForSpeaker(speaker) {
+    if (speaker && slots[speaker.gender] && slots[speaker.gender][speaker.index]) {
+      const s = slots[speaker.gender][speaker.index];
+      if (s) return { uri: s.uri, pitch: s.pitch };
+    }
+    return { uri: state.voiceURI, pitch: state.slotPitch };
+  }
+  function makeUtter(text, speaker) {
+    const u = new SpeechSynthesisUtterance(preprocess(text));
+    const vc = voiceForSpeaker(speaker);
+    const v = voices.find(x => x.voiceURI === vc.uri) || getVoice();
+    if (v) { u.voice = v; u.lang = v.lang; } else { u.lang = state.lang; }
+    u.rate = state.rate; u.pitch = Math.min(2, Math.max(0, state.pitch * vc.pitch)); u.volume = state.volume;
+    return u;
+  }
+  function now(){ return (window.performance && performance.now) ? performance.now() : Date.now(); }
+  function speakSentence(i) {
+    if (i >= queue.length) { finish(); return; }
+    cursor = i; renderOverlay(); updateMeta();
+    const u = makeUtter(queue[i].text, queue[i].speaker);
+    u.onstart = () => { queue[i]._s = (now() - playT0) / 1000; };
+    u.onend = () => {
+      queue[i]._e = (now() - playT0) / 1000;
+      if (!playing) return;
+      // 화자가 바뀌면 살짝 더 긴 쉼
+      const next = queue[i+1];
+      const speakerChanged = state.dialogue && next && next.speaker && queue[i].speaker && (next.speaker.gender !== queue[i].speaker.gender || next.speaker.index !== queue[i].speaker.index);
+      const g = state.gap * (speakerChanged ? 1.6 : 1) * 1000;
+      gapTimer = setTimeout(() => { if (playing) speakSentence(i+1); }, g);
+    };
+    u.onerror = () => { if (playing) speakSentence(i+1); };
+    synth.speak(u);
+  }
+  async function start() {
+    queue = splitSentences(script.value);
+    if (!queue.length) { flash("읽을 대본이 없습니다."); return; }
+    if (!state.voiceURI) { flash("사용 가능한 음성이 없습니다."); return; }
+    if (synth) synth.cancel();
+    setTransport(true); cursor = -1; cuesReady = false; updateMeta();
+    if (state.chime) { await playChime(); if (!playing) return; }
+    startBgm();
+    playT0 = now();
+    speakSentence(0);
+  }
+  function finish() {
+    setTransport(false); cursor = queue.length; updateMeta(); bar.style.width = "100%";
+    overlay.classList.remove("on"); script.classList.remove("reading");
+    // 자막 타이밍이 잡혔으면 SRT/VTT 내보내기 활성화
+    cuesReady = queue.length > 0 && queue.every(q => typeof q._s === "number" && typeof q._e === "number");
+    $("srtBtn").disabled = !cuesReady; $("vttBtn").disabled = !cuesReady;
+    if (typeof stopBgm === "function") stopBgm();
+    if (typeof onPlaybackFinished === "function") onPlaybackFinished();
+  }
+  function stop() { if (synth) synth.cancel(); clearTimeout(gapTimer); setTransport(false); cursor = -1; updateMeta(); bar.style.width = "0%"; if (typeof stopBgm === "function") stopBgm(); if (typeof stopRecording === "function") stopRecording(); }
+  function flash(m){ meta.textContent = m; setTimeout(updateMeta, 1600); }
+
+  $("playBtn").addEventListener("click", start);
+  $("stopBtn").addEventListener("click", stop);
+  const pauseBtn = $("pauseBtn");
+  pauseBtn.addEventListener("click", () => {
+    if (!synth) return;
+    if (synth.paused) { synth.resume(); pauseBtn.textContent = "⏸ 일시정지"; liveBadge.classList.add("on"); }
+    else { synth.pause(); pauseBtn.textContent = "▶ 재개"; liveBadge.classList.remove("on"); }
+  });
+  $("testBtn").addEventListener("click", () => {
+    if (!state.voiceURI) { flash("사용 가능한 음성이 없습니다."); return; }
+    if (synth) synth.cancel();
+    synth.speak(makeUtter(TEST_LINE[state.lang] || "안녕하세요."));
+  });
+
+  // ---------- Recording (탭 오디오 캡처) ----------
+  const recBtn = $("recBtn");
+  const recResult = $("recResult"), recAudio = $("recAudio"), recInfo = $("recInfo");
+  let mediaRecorder = null, recChunks = [], recStream = null, recording = false, lastBlob = null, lastExt = "webm";
+
+  const recSupported = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia && window.MediaRecorder);
+  if (!recSupported) { recBtn.disabled = true; recBtn.title = "이 브라우저에서는 녹음을 지원하지 않습니다."; }
+
+  function pickMime() {
+    const cands = ["audio/webm;codecs=opus","audio/webm","audio/ogg;codecs=opus","audio/mp4"];
+    for (const c of cands) { if (window.MediaRecorder && MediaRecorder.isTypeSupported(c)) return c; }
+    return "";
+  }
+
+  recBtn.addEventListener("click", async () => {
+    if (recording) { stopRecording(); return; }
+    if (!recSupported) return;
+    if (!splitSentences(script.value).length) { flash("녹음할 대본이 없습니다."); return; }
+    if (!state.voiceURI) { flash("사용 가능한 음성이 없습니다."); return; }
+    try {
+      // 사용자에게 "이 탭 + 탭 소리 공유"를 선택하도록 요청
+      recStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+    } catch (e) { flash("화면/탭 공유가 취소되었습니다."); return; }
+    const audioTracks = recStream.getAudioTracks();
+    if (!audioTracks.length) {
+      recStream.getTracks().forEach(t => t.stop()); recStream = null;
+      showBanner("🔴 녹음하려면 공유 창에서 '탭'을 선택하고 아래쪽 '탭 오디오 공유(Share tab audio)'를 반드시 체크해 주세요.");
+      return;
+    }
+    hideBanner();
+    // 화면(비디오) 트랙은 필요 없으니 정리, 오디오만 녹음
+    recStream.getVideoTracks().forEach(t => t.stop());
+    const audioStream = new MediaStream(audioTracks);
+    const mime = pickMime();
+    lastExt = mime.includes("mp4") ? "m4a" : (mime.includes("ogg") ? "ogg" : "webm");
+    // 최고 음질로 녹음: 오디오 비트레이트 256kbps(음성엔 사실상 무손실 수준)
+    const recOpts = mime ? { mimeType: mime, audioBitsPerSecond: 256000 } : { audioBitsPerSecond: 256000 };
+    try { mediaRecorder = new MediaRecorder(audioStream, recOpts); }
+    catch (e) { try { mediaRecorder = new MediaRecorder(audioStream, mime ? { mimeType: mime } : undefined); } catch (e2) { mediaRecorder = new MediaRecorder(audioStream); } }
+    recChunks = [];
+    mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size) recChunks.push(e.data); };
+    mediaRecorder.onstop = onRecStop;
+    // 사용자가 공유를 직접 중단해도 정리
+    audioTracks[0].addEventListener("ended", () => { if (recording) stopRecording(); });
+
+    mediaRecorder.start();
+    recording = true;
+    recBtn.classList.add("recording"); recBtn.textContent = "⏹ 녹음 중지";
+    recResult.classList.remove("show");
+    // 녹음 시작과 동시에 방송 재생
+    start();
+  });
+
+  function stopRecording() {
+    if (!recording) return;
+    // 재생 중이면 잔향까지 조금 담고 종료
+    try { if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop(); } catch (_) {}
+    recording = false;
+    recBtn.classList.remove("recording"); recBtn.textContent = "🔴 녹음";
+  }
+  // 방송이 자연스럽게 끝나면 녹음도 종료
+  function onPlaybackFinished() {
+    if (recording) setTimeout(stopRecording, Math.max(400, state.gap * 1000));
+  }
+
+  function onRecStop() {
+    if (recStream) { recStream.getTracks().forEach(t => t.stop()); recStream = null; }
+    if (!recChunks.length) { flash("녹음된 소리가 없습니다."); return; }
+    const type = (mediaRecorder && mediaRecorder.mimeType) || "audio/webm";
+    lastBlob = new Blob(recChunks, { type });
+    const url = URL.createObjectURL(lastBlob);
+    recAudio.src = url;
+    const kb = Math.round(lastBlob.size / 1024);
+    recInfo.textContent = `🎧 녹음 완료 · ${kb >= 1024 ? (kb/1024).toFixed(1)+"MB" : kb+"KB"}`;
+    recResult.classList.add("show");
+  }
+
+  function fileName() {
+    const lang = state.lang;
+    return `announcer_${lang}.${lastExt}`;
+  }
+  $("downloadBtn").addEventListener("click", () => {
+    if (!lastBlob) return;
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(lastBlob); a.download = fileName();
+    document.body.appendChild(a); a.click(); a.remove();
+  });
+  $("shareBtn").addEventListener("click", async () => {
+    if (!lastBlob) return;
+    const file = new File([lastBlob], fileName(), { type: lastBlob.type });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: "아나운서 녹음", text: "아나운서 앱으로 만든 음성입니다." }); }
+      catch (_) {}
+    } else {
+      flash("이 브라우저는 파일 공유를 지원하지 않아 다운로드로 대체합니다.");
+      $("downloadBtn").click();
+    }
+  });
+  $("recCloseBtn").addEventListener("click", () => { recResult.classList.remove("show"); });
+
+  // ---------- Speed presets ----------
+  const speedPresets = $("speedPresets");
+  speedPresets.addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    state.rate = parseFloat(b.dataset.r);
+    $("rate").value = state.rate; $("rateVal").textContent = state.rate.toFixed(2)+"×";
+    syncSpeedPresetHighlight(); save();
+  });
+  function syncSpeedPresetHighlight() {
+    document.querySelectorAll("#speedPresets button").forEach(b => b.classList.toggle("active", Math.abs(parseFloat(b.dataset.r) - state.rate) < 0.001));
+  }
+
+  // ---------- Controls ----------
+  function bindRange(id, valId, fmt, key, after) {
+    const el = $(id), valEl = $(valId);
+    el.addEventListener("input", () => { state[key] = parseFloat(el.value); valEl.textContent = fmt(state[key]); if (after) after(); save(); });
+  }
+  bindRange("rate","rateVal", v=>v.toFixed(2)+"×","rate", syncSpeedPresetHighlight);
+  bindRange("pitch","pitchVal", v=>v.toFixed(2),"pitch");
+  bindRange("volume","volumeVal", v=>Math.round(v*100)+"%","volume");
+  bindRange("gap","gapVal", v=>v.toFixed(1)+"초","gap");
+  $("chimeChk").addEventListener("change", e => { state.chime = e.target.checked; save(); });
+  $("hlChk").addEventListener("change", e => { state.highlight = e.target.checked; save(); });
+  $("normChk").addEventListener("change", e => { state.normalize = e.target.checked; save(); });
+  $("digitChk").addEventListener("change", e => { state.digitByDigit = e.target.checked; save(); });
+  $("dict").addEventListener("input", e => { state.dict = e.target.value; save(); });
+
+  // ---------- 낭독 스타일 ----------
+  $("styles").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    state.style = b.dataset.k;
+    const p = STYLES[state.style]; if (!p) return;
+    state.rate = p.rate; state.pitch = p.pitch; state.gap = p.gap; state.chime = p.chime;
+    reflect();
+    document.querySelectorAll("#styles button").forEach(x => x.classList.toggle("active", x===b));
+    save();
+  });
+
+  // ---------- 가져오기 ----------
+  $("importBtn").addEventListener("click", () => $("fileInput").click());
+  $("fileInput").addEventListener("change", (e) => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => { script.value = String(r.result || ""); stop(); script.focus(); };
+    r.readAsText(f, "UTF-8");
+    e.target.value = "";
+  });
+  $("pasteBtn").addEventListener("click", async () => {
+    try {
+      const t = await navigator.clipboard.readText();
+      if (t) { script.value = t; stop(); script.focus(); } else flash("클립보드가 비어 있습니다.");
+    } catch (_) { flash("클립보드 접근이 거부되었습니다. Ctrl+V로 붙여넣어 주세요."); script.focus(); }
+  });
+
+  // ---------- 자막 내보내기 ----------
+  function pad(n, w) { return String(Math.floor(n)).padStart(w, "0"); }
+  function ts(sec, comma) {
+    const ms = Math.round((sec % 1) * 1000);
+    const s = Math.floor(sec) % 60, m = Math.floor(sec/60) % 60, h = Math.floor(sec/3600);
+    return `${pad(h,2)}:${pad(m,2)}:${pad(s,2)}${comma?",":"."}${pad(ms,3)}`;
+  }
+  function buildSubs(vtt) {
+    let out = vtt ? "WEBVTT\n\n" : "";
+    queue.forEach((q, i) => {
+      const s = q._s, e = Math.max(q._e, q._s + 0.3);
+      if (vtt) out += `${i+1}\n${ts(s,false)} --> ${ts(e,false)}\n${q.text}\n\n`;
+      else out += `${i+1}\n${ts(s,true)} --> ${ts(e,true)}\n${q.text}\n\n`;
+    });
+    return out;
+  }
+  function downloadText(name, content, mime) {
+    const blob = new Blob([content], { type: mime || "text/plain;charset=utf-8" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  $("srtBtn").addEventListener("click", () => { if (cuesReady) downloadText(`announcer_${state.lang}.srt`, buildSubs(false)); });
+  $("vttBtn").addEventListener("click", () => { if (cuesReady) downloadText(`announcer_${state.lang}.vtt`, buildSubs(true), "text/vtt;charset=utf-8"); });
+
+  // ---------- 대화 모드 ----------
+  const DIALOG_SAMPLES = {
+    ko: "남1: 안녕하십니까. 오늘의 주요 소식입니다.\n여1: 네, 첫 번째 소식부터 전해 주시죠.\n남1: 오늘 전국이 대체로 맑았습니다.\n여1: 자세한 날씨는 잠시 후 전해 드리겠습니다.",
+    en: "M1: Good evening. Here are today's top stories.\nF1: Yes, let's start with the first one.\nM1: The weather was clear across the country today.\nF1: More details in a moment.",
+    de: "M1: Guten Abend. Hier sind die wichtigsten Nachrichten.\nF1: Ja, beginnen wir mit der ersten Meldung.\nM1: Heute war es landesweit meist heiter.\nF1: Mehr dazu in Kürze.",
+    pt: "M1: Boa noite. Estas são as principais notícias.\nF1: Sim, vamos começar pela primeira.\nM1: Hoje o céu esteve limpo em todo o país.\nF1: Mais detalhes a seguir.",
+    es: "M1: Buenas noches. Estas son las noticias principales.\nF1: Sí, empecemos por la primera.\nM1: Hoy el cielo estuvo despejado en todo el país.\nF1: Más detalles enseguida.",
+    id: "M1: Selamat malam. Berikut berita utama.\nF1: Ya, mari kita mulai dari yang pertama.\nM1: Hari ini cuaca cerah di seluruh negeri.\nF1: Selengkapnya sebentar lagi.",
+    zh: "M1: 晚上好。以下是主要新闻。\nF1: 好的，我们先看第一条。\nM1: 今天全国大部分地区天气晴朗。\nF1: 详细内容稍后播报。",
+    fr: "M1: Bonsoir. Voici les principales informations.\nF1: Oui, commençons par la première.\nM1: Le ciel était dégagé partout dans le pays aujourd'hui.\nF1: Plus de détails dans un instant.",
+  };
+  $("dialogChk").addEventListener("change", e => { state.dialogue = e.target.checked; save(); });
+  $("dialogSample").addEventListener("click", () => {
+    script.value = DIALOG_SAMPLES[state.lang] || DIALOG_SAMPLES.ko;
+    state.dialogue = true; $("dialogChk").checked = true;
+    stop(); script.focus(); save();
+  });
+
+  // ---------- 배경음악 ----------
+  const bgmAudio = new Audio(); bgmAudio.loop = true;
+  let bgmUrl = null;
+  $("bgmBtn").addEventListener("click", () => $("bgmInput").click());
+  $("bgmInput").addEventListener("change", (e) => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    if (bgmUrl) URL.revokeObjectURL(bgmUrl);
+    bgmUrl = URL.createObjectURL(f); bgmAudio.src = bgmUrl;
+    $("bgmName").textContent = "🎵 " + f.name;
+    $("bgmClear").disabled = false;
+    if (!state.bgmOn) { state.bgmOn = true; $("bgmChk").checked = true; save(); }
+    e.target.value = "";
+  });
+  $("bgmClear").addEventListener("click", () => {
+    bgmAudio.pause(); bgmAudio.removeAttribute("src");
+    if (bgmUrl) { URL.revokeObjectURL(bgmUrl); bgmUrl = null; }
+    $("bgmName").textContent = "불러온 음악 없음 · CC0/로열티프리 파일만 사용하세요.";
+    $("bgmClear").disabled = true;
+  });
+  $("bgmChk").addEventListener("change", e => { state.bgmOn = e.target.checked; if (!state.bgmOn) stopBgm(); save(); });
+  function startBgm() {
+    if (!state.bgmOn || !bgmUrl) return;
+    try { bgmAudio.volume = state.bgmVolume; bgmAudio.currentTime = 0; const pr = bgmAudio.play(); if (pr && pr.catch) pr.catch(()=>{}); } catch (_) {}
+  }
+  function stopBgm() {
+    try {
+      const v0 = bgmAudio.volume || state.bgmVolume; let step = 0;
+      const iv = setInterval(() => {
+        step++; bgmAudio.volume = Math.max(0, v0 * (1 - step/8));
+        if (step >= 8) { clearInterval(iv); try { bgmAudio.pause(); } catch(_){} bgmAudio.volume = v0; }
+      }, 40);
+    } catch (_) { try { bgmAudio.pause(); } catch (e) {} }
+  }
+  bindRange("bgmVol", "bgmVolVal", v => Math.round(v*100)+"%", "bgmVolume", () => { bgmAudio.volume = state.bgmVolume; });
+
+  // ---------- WAV 내보내기 ----------
+  function audioBufferToWav(buffer) {
+    const numCh = buffer.numberOfChannels, sr = buffer.sampleRate;
+    const total = buffer.length * numCh * 2 + 44;
+    const ab = new ArrayBuffer(total); const view = new DataView(ab); let p = 0;
+    const ws = (s) => { for (let i=0;i<s.length;i++) view.setUint8(p++, s.charCodeAt(i)); };
+    const w16 = (d) => { view.setUint16(p, d, true); p += 2; };
+    const w32 = (d) => { view.setUint32(p, d, true); p += 4; };
+    ws("RIFF"); w32(total-8); ws("WAVE"); ws("fmt "); w32(16); w16(1); w16(numCh); w32(sr); w32(sr*numCh*2); w16(numCh*2); w16(16); ws("data"); w32(buffer.length*numCh*2);
+    const chans = []; for (let c=0;c<numCh;c++) chans.push(buffer.getChannelData(c));
+    for (let i=0;i<buffer.length;i++) for (let c=0;c<numCh;c++) { let s = Math.max(-1, Math.min(1, chans[c][i])); view.setInt16(p, s < 0 ? s*0x8000 : s*0x7FFF, true); p += 2; }
+    return new Blob([ab], { type: "audio/wav" });
+  }
+  $("wavBtn").addEventListener("click", async () => {
+    if (!lastBlob) return;
+    const btn = $("wavBtn"); const orig = btn.textContent; btn.disabled = true; btn.textContent = "변환 중…";
+    try {
+      const ab = await lastBlob.arrayBuffer();
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const audio = await ctx.decodeAudioData(ab);
+      const wav = audioBufferToWav(audio);
+      const a = document.createElement("a"); a.href = URL.createObjectURL(wav); a.download = `announcer_${state.lang}.wav`;
+      document.body.appendChild(a); a.click(); a.remove();
+      if (ctx.close) ctx.close();
+    } catch (err) { flash("WAV 변환 실패: " + (err && err.message || err)); }
+    finally { btn.disabled = false; btn.textContent = orig; }
+  });
+
+  // ---------- Samples ----------
+  $("samples").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    const set = SAMPLES[state.lang] || SAMPLES.ko;
+    script.value = set[b.dataset.s] || "";
+    stop(); script.focus();
+  });
+
+  // ---------- Banner helpers ----------
+  function showBanner(msg){ voiceBanner.textContent = msg; voiceBanner.classList.add("show"); }
+  function hideBanner(){ voiceBanner.classList.remove("show"); }
+
+  // ---------- Persistence ----------
+  const LS = "announcer-v2";
+  function save(){ try{ localStorage.setItem(LS, JSON.stringify(state)); }catch(_){} }
+  function reflect() {
+    $("rate").value = state.rate; $("pitch").value = state.pitch; $("volume").value = state.volume; $("gap").value = state.gap;
+    $("rateVal").textContent = Number(state.rate).toFixed(2)+"×";
+    $("pitchVal").textContent = Number(state.pitch).toFixed(2);
+    $("volumeVal").textContent = Math.round(state.volume*100)+"%";
+    $("gapVal").textContent = Number(state.gap).toFixed(1)+"초";
+    $("chimeChk").checked = state.chime; $("hlChk").checked = state.highlight;
+    $("normChk").checked = state.normalize; $("digitChk").checked = state.digitByDigit;
+    $("dict").value = state.dict || "";
+    $("dialogChk").checked = state.dialogue;
+    $("bgmChk").checked = state.bgmOn;
+    $("bgmVol").value = state.bgmVolume; $("bgmVolVal").textContent = Math.round(state.bgmVolume*100)+"%";
+    document.querySelectorAll(".lang").forEach(x => x.classList.toggle("active", x.dataset.code===state.lang));
+    document.querySelectorAll("#styles button").forEach(x => x.classList.toggle("active", x.dataset.k===state.style));
+    syncSpeedPresetHighlight();
+  }
+  (function load(){
+    try { const s = JSON.parse(localStorage.getItem(LS) || "null"); if (s) Object.assign(state, s); } catch(_){}
+  })();
+  reflect();
+  buildSlots();  // 저장된 언어/성별 반영해 다시 그리기
+
+  // ---------- Shortcuts ----------
+  document.addEventListener("keydown", (e) => {
+    if (e.target === script && !(e.ctrlKey||e.metaKey)) return; // 대본 입력 방해 금지
+    if ((e.ctrlKey||e.metaKey) && e.key === "Enter") { e.preventDefault(); if (!playing) start(); }
+    else if (e.key === "Escape" && playing) { stop(); }
+  });
+
+  window.addEventListener("beforeunload", () => { if (synth) synth.cancel(); });
+})();
+</script>
+<script>
+// PWA 서비스 워커 등록 (http/https에서만 — file://에서는 조용히 건너뜀)
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+    let refreshed = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (refreshed) return; refreshed = true; location.reload();  // 새 버전 활성화 시 한 번 새로고침
+    });
+  });
+}
+</script>
+</body>
+</html>

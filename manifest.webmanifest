@@ -1,0 +1,18 @@
+{
+  "name": "아나운서 - 대본을 아나운서 목소리로",
+  "short_name": "아나운서",
+  "description": "대본을 아나운서 목소리로 읽어주고 녹음·다운로드하는 앱. 8개 언어, 남녀 6명, 대화 모드 지원.",
+  "start_url": "아나운서.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#12151d",
+  "theme_color": "#12151d",
+  "lang": "ko-KR",
+  "categories": ["utilities", "productivity", "education"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
