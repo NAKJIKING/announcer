@@ -151,7 +151,18 @@
   .banner { background: rgba(255,206,84,.12); border: 1px solid var(--gold); color: var(--gold); padding: 10px 14px; border-radius: 8px; font-size: 12.5px; display: none; }
   .banner.show { display: block; }
 
-  @media (max-width: 900px) { .right { display: none; } main { flex-direction: column; } .ann-groups { grid-template-columns: 1fr; } }
+  @media (max-width: 900px) {
+    /* 모바일: 전체 페이지가 세로로 스크롤되게 하고, 대본칸/재생버튼/설정이 모두 보이게 */
+    html, body { height: auto; min-height: 100%; }
+    body { overflow-y: auto; overflow-x: hidden; -webkit-text-size-adjust: 100%; }
+    header { position: sticky; top: 0; z-index: 20; }
+    main { flex-direction: column; flex: none; }
+    .left { flex: none; padding: 14px; }
+    /* 설정 패널을 숨기지 않고 본문 아래에 이어서 표시 */
+    .right { width: 100%; border-left: none; border-top: 1px solid var(--border); }
+    .ann-groups { grid-template-columns: 1fr; }
+    .script-wrap { flex: none; height: 42vh; min-height: 240px; }
+  }
 </style>
 </head>
 <body>
@@ -1079,15 +1090,25 @@
 })();
 </script>
 <script>
-// PWA 서비스 워커 등록 (http/https에서만 — file://에서는 조용히 건너뜀)
-if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
-    let refreshed = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (refreshed) return; refreshed = true; location.reload();  // 새 버전 활성화 시 한 번 새로고침
-    });
-  });
+// PWA 서비스 워커 등록 + 옛 캐시 자가 치유
+if (location.protocol.startsWith("http")) {
+  (async () => {
+    try {
+      // 옛 버전이 남긴 캐시를 즉시 제거
+      if (window.caches) {
+        const keys = await caches.keys();
+        await Promise.all(keys.filter(k => k !== "announcer-v3").map(k => caches.delete(k)));
+      }
+      if ("serviceWorker" in navigator) {
+        const reg = await navigator.serviceWorker.register("sw.js", { updateViaCache: "none" });
+        reg.update();
+        let refreshed = false;
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+          if (refreshed) return; refreshed = true; location.reload();
+        });
+      }
+    } catch (_) {}
+  })();
 }
 </script>
 </body>
