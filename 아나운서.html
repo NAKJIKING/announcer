@@ -60,6 +60,18 @@
   :root { --grad: radial-gradient(1200px 500px at 80% -10%, #232a3a 0%, var(--bg) 60%); }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  /* 키보드 포커스 표시 (마우스 클릭 시에는 안 나타남) */
+  :focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+  .skip-link {
+    position: absolute; left: -9999px; top: 0; z-index: 300;
+    background: var(--accent); color: #fff; padding: 10px 16px;
+    border-radius: 0 0 var(--radius-sm) 0; font-weight: 700; font-size: 13px;
+  }
+  .skip-link:focus { left: 0; }
   html, body { height: 100%; }
   body {
     background: var(--grad);
@@ -138,12 +150,33 @@
   button.act.primary-btn { background: linear-gradient(135deg, var(--accent), #ff6f2d); border: none; color: #fff; }
 
   /* 보관함 태그·푸터 */
+  .lib-search {
+    width: 100%; background: var(--panel2); border: 1px solid var(--border); color: var(--text);
+    padding: 9px 12px; border-radius: var(--radius-sm); font-size: 12.5px; font-family: inherit;
+    outline: none; margin-bottom: 8px;
+  }
+  .lib-search:focus { border-color: var(--accent); }
   .lib-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
   .lib-tags button { background: var(--panel2); border: 1px solid var(--border); color: var(--text-dim);
                      padding: 5px 11px; border-radius: var(--radius-pill); font-size: 11.5px; cursor: pointer;
                      font-family: inherit; font-weight: 600; }
   .lib-tags button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
   .lib-foot { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+
+  /* 설정 접이식 그룹 */
+  .sgroup { border-radius: var(--radius-sm); }
+  .sgroup > summary {
+    list-style: none; cursor: pointer; padding: 9px 2px;
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11.5px; text-transform: uppercase; letter-spacing: .7px;
+    color: var(--text-dim); font-weight: 800; user-select: none;
+    transition: color var(--dur) var(--ease);
+  }
+  .sgroup > summary::-webkit-details-marker { display: none; }
+  .sgroup > summary::after { content: "▾"; margin-left: auto; transition: transform var(--dur) var(--ease); font-size: 13px; }
+  .sgroup[open] > summary::after { transform: rotate(180deg); }
+  .sgroup > summary:hover { color: var(--text); }
+  .sgroup[open] > summary { color: var(--accent); }
 
   /* 단어 하이라이트 */
   #overlay .word { background: var(--accent); color: #fff; border-radius: 3px; padding: 0 1px; }
@@ -307,17 +340,18 @@
 </style>
 </head>
 <body>
+<a href="#script" class="skip-link">대본 입력으로 건너뛰기</a>
 <header>
   <h1><span class="logo">🎙️</span> 아나운서</h1>
   <span class="sub">대본을 아나운서 목소리로 읽어드립니다</span>
   <span class="spacer"></span>
   <div class="wave" id="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
   <span class="live-badge" id="liveBadge"><span class="pulse"></span> ON AIR</span>
-  <button class="icon-btn" id="themeBtn" title="라이트/다크 전환">🌙</button>
+  <button class="icon-btn" id="themeBtn" title="라이트/다크 전환" aria-label="라이트 또는 다크 테마 전환">🌙</button>
 </header>
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<div class="onb" id="onb">
+<div class="onb" id="onb" role="dialog" aria-modal="true" aria-label="사용법 안내">
   <div class="onb-card">
     <div class="onb-step" id="onbBody"></div>
     <div class="onb-dots" id="onbDots"></div>
@@ -367,7 +401,8 @@
     </div>
 
     <div class="lib" id="lib">
-      <div class="lib-head">📚 내 대본 <button class="chip" id="libClose">✕</button></div>
+      <div class="lib-head">📚 내 대본 <button class="chip" id="libClose" aria-label="내 대본 닫기">✕</button></div>
+      <input type="search" id="libSearch" class="lib-search" placeholder="대본 검색…" aria-label="대본 검색">
       <div class="lib-tags" id="libTags"></div>
       <div class="lib-list" id="libList"></div>
       <div class="lib-foot">
@@ -377,7 +412,7 @@
     </div>
     <div class="script-wrap">
       <div id="overlay"></div>
-      <textarea id="script" placeholder="여기에 대본을 붙여넣거나 입력하세요."></textarea>
+      <textarea id="script" aria-label="대본 입력" placeholder="여기에 대본을 붙여넣거나 입력하세요."></textarea>
     </div>
 
     <div class="transport">
@@ -385,9 +420,11 @@
       <button class="act" id="pauseBtn" disabled>⏸ 일시정지</button>
       <button class="act" id="stopBtn" disabled>⏹ 정지</button>
       <button class="act rec" id="recBtn">🔴 녹음</button>
+      <button class="act" id="selBtn" title="대본에서 선택한 부분만 읽기">🖍 선택 재생</button>
       <button class="act" id="testBtn">🔊 미리듣기</button>
       <div class="progress"><div class="bar" id="bar"></div></div>
-      <span class="meta" id="meta">0 / 0 문장</span>
+      <span class="meta" id="meta" role="status" aria-live="polite" aria-atomic="true">0 / 0 문장</span>
+      <span class="meta" id="estimate"></span>
     </div>
 
     <div class="rec-result" id="recResult">
@@ -396,13 +433,14 @@
       <button class="act" id="downloadBtn">⬇ 다운로드</button>
       <button class="act" id="wavBtn">⬇ WAV</button>
       <button class="act" id="shareBtn">🔗 공유</button>
-      <button class="act" id="recCloseBtn">✕</button>
+      <button class="act" id="recCloseBtn" aria-label="녹음 결과 닫기">✕</button>
     </div>
   </section>
 
   <aside class="right">
-    <div class="group">
-      <h2>낭독 스타일</h2>
+    <details class="sgroup" open>
+      <summary><span>🎬 낭독 스타일</span></summary>
+      <div class="group">
       <div class="styles" id="styles">
         <button data-k="anchor" class="active">📺 뉴스 앵커</button>
         <button data-k="calm">🎬 차분한 내레이션</button>
@@ -410,11 +448,13 @@
         <button data-k="notice">📢 안내 방송</button>
       </div>
     </div>
+    </details>
 
     <div class="hr"></div>
 
-    <div class="group">
-      <h2>말하기 속도</h2>
+    <details class="sgroup" open>
+      <summary><span>⏩ 말하기 속도</span></summary>
+      <div class="group">
       <div class="speed-presets" id="speedPresets">
         <button data-r="0.7">아주<br>느리게</button>
         <button data-r="0.85">느리게</button>
@@ -424,20 +464,24 @@
       </div>
       <div class="field"><label for="rate">세밀 조절 <span class="val" id="rateVal">1.00×</span></label><input type="range" id="rate" min="0.5" max="1.7" step="0.05" value="1"></div>
     </div>
+    </details>
 
     <div class="hr"></div>
 
-    <div class="group">
-      <h2>세부 조절</h2>
+    <details class="sgroup">
+      <summary><span>🎚️ 세부 조절</span></summary>
+      <div class="group">
       <div class="field"><label for="pitch">음높이 <span class="val" id="pitchVal">1.00</span></label><input type="range" id="pitch" min="0.5" max="1.5" step="0.05" value="1"></div>
       <div class="field"><label for="volume">볼륨 <span class="val" id="volumeVal">100%</span></label><input type="range" id="volume" min="0" max="1" step="0.05" value="1"></div>
       <div class="field"><label for="gap">문장 사이 쉼 <span class="val" id="gapVal">0.4초</span></label><input type="range" id="gap" min="0" max="1.5" step="0.1" value="0.4"></div>
     </div>
+    </details>
 
     <div class="hr"></div>
 
-    <div class="group">
-      <h2>발음 교정</h2>
+    <details class="sgroup">
+      <summary><span>🔤 발음 교정</span></summary>
+      <div class="group">
       <div class="toggle-row"><span>숫자·단위 자동 읽기</span><label class="switch"><input type="checkbox" id="normChk" checked><span class="slider"></span></label></div>
       <div class="mini">2024년 → "이천이십사 년", ₩1,500 → "천오백 원", 010-1234-5678 → 자릿수 읽기</div>
       <div class="toggle-row"><span>숫자를 한 자리씩</span><label class="switch"><input type="checkbox" id="digitChk"><span class="slider"></span></label></div>
@@ -446,20 +490,24 @@
         <textarea id="dict" class="dict" rows="3" placeholder="AI=에이아이&#10;LG=엘지&#10;나이키=나이키"></textarea>
       </div>
     </div>
+    </details>
 
     <div class="hr"></div>
 
-    <div class="group">
-      <h2>대화 모드</h2>
+    <details class="sgroup">
+      <summary><span>🗣️ 대화 모드</span></summary>
+      <div class="group">
       <div class="toggle-row"><span>여러 명이 번갈아 읽기</span><label class="switch"><input type="checkbox" id="dialogChk"><span class="slider"></span></label></div>
       <div class="mini">줄 앞에 화자를 적으면 그 아나운서 목소리로 읽습니다.<br>예) <b>남1:</b> 안녕하세요 / <b>여2:</b> 반갑습니다 (남·여 + 1~3)</div>
       <button class="chip" id="dialogSample" style="align-self:flex-start">🗣 대화 예시 넣기</button>
     </div>
+    </details>
 
     <div class="hr"></div>
 
-    <div class="group">
-      <h2>배경음악</h2>
+    <details class="sgroup">
+      <summary><span>🎵 배경음악</span></summary>
+      <div class="group">
       <div class="io-row">
         <button class="chip" id="bgmBtn">🎵 음악 불러오기</button>
         <button class="chip" id="bgmClear" disabled>✕ 제거</button>
@@ -469,17 +517,25 @@
       <div class="field"><label for="bgmVol">배경음악 볼륨 <span class="val" id="bgmVolVal">20%</span></label><input type="range" id="bgmVol" min="0" max="1" step="0.05" value="0.2"></div>
       <input type="file" id="bgmInput" accept="audio/*" hidden>
     </div>
+    </details>
 
     <div class="hr"></div>
 
-    <div class="group">
-      <h2>옵션</h2>
+    <details class="sgroup">
+      <summary><span>⚙️ 옵션</span></summary>
+      <div class="group">
       <div class="toggle-row"><span>시작 알림음 (딩동댕)</span><label class="switch"><input type="checkbox" id="chimeChk"><span class="slider"></span></label></div>
       <div class="toggle-row"><span>문장 하이라이트</span><label class="switch"><input type="checkbox" id="hlChk" checked><span class="slider"></span></label></div>
       <div class="toggle-row"><span>단어 단위 하이라이트</span><label class="switch"><input type="checkbox" id="wordHlChk"><span class="slider"></span></label></div>
       <div class="mini">읽는 단어를 실시간으로 표시합니다. (일부 브라우저만 지원)</div>
+      <div class="field" style="margin-top:6px">
+        <label for="repeat">문장 반복 <span class="val" id="repeatVal">1회</span></label>
+        <input type="range" id="repeat" min="1" max="5" step="1" value="1">
+      </div>
+      <div class="mini">받아쓰기·쉐도잉 학습용. 각 문장을 지정한 횟수만큼 반복해서 읽습니다.</div>
       <button class="chip" id="helpBtn" style="align-self:flex-start;margin-top:4px">❓ 사용법 다시 보기</button>
     </div>
+    </details>
 
     <div class="hr"></div>
 
@@ -590,7 +646,7 @@
     chime: false, highlight: true,
     normalize: true, digitByDigit: false, dict: "",
     dialogue: false, bgmOn: false, bgmVolume: 0.2,
-    fontIdx: 1, theme: "dark", wordHl: false, onboarded: false,
+    fontIdx: 1, theme: "dark", wordHl: false, onboarded: false, repeat: 1,
   };
 
   // ---------- 낭독 스타일 프리셋 (rate/pitch/gap/chime 묶음) ----------
@@ -868,7 +924,7 @@
 
   // ---------- Playback ----------
   let queue = [], cursor = -1, playing = false, gapTimer = null;
-  let playT0 = 0, cuesReady = false, wordRange = null;
+  let playT0 = 0, cuesReady = false, wordRange = null, repeatLeft = null;
 
   function setTransport(on) {
     playing = on;
@@ -926,6 +982,7 @@
   function speakSentence(i) {
     if (i >= queue.length) { finish(); return; }
     cursor = i; renderOverlay(); updateMeta();
+    if (repeatLeft === null) { /* 새 문장 */ }
     const u = makeUtter(queue[i].text, queue[i].speaker);
     u.onstart = () => { queue[i]._s = (now() - playT0) / 1000; wordRange = null; };
     if (state.wordHl) {
@@ -940,6 +997,15 @@
     u.onend = () => {
       queue[i]._e = (now() - playT0) / 1000; wordRange = null;
       if (!playing) return;
+      // 학습용 문장 반복
+      if (state.repeat > 1) {
+        repeatLeft = (repeatLeft === null) ? state.repeat - 1 : repeatLeft - 1;
+        if (repeatLeft > 0) {
+          gapTimer = setTimeout(() => { if (playing) { const rl = repeatLeft; speakSentence(i); repeatLeft = rl; } }, state.gap * 1000);
+          return;
+        }
+        repeatLeft = null;
+      }
       // 화자가 바뀌면 살짝 더 긴 쉼
       const next = queue[i+1];
       const speakerChanged = state.dialogue && next && next.speaker && queue[i].speaker && (next.speaker.gender !== queue[i].speaker.gender || next.speaker.index !== queue[i].speaker.index);
@@ -1108,10 +1174,11 @@
     const el = $(id), valEl = $(valId);
     el.addEventListener("input", () => { state[key] = parseFloat(el.value); valEl.textContent = fmt(state[key]); if (after) after(); save(); });
   }
-  bindRange("rate","rateVal", v=>v.toFixed(2)+"×","rate", syncSpeedPresetHighlight);
+  bindRange("rate","rateVal", v=>v.toFixed(2)+"×","rate", ()=>{ syncSpeedPresetHighlight(); updateEstimate(); });
   bindRange("pitch","pitchVal", v=>v.toFixed(2),"pitch");
   bindRange("volume","volumeVal", v=>Math.round(v*100)+"%","volume");
-  bindRange("gap","gapVal", v=>v.toFixed(1)+"초","gap");
+  bindRange("gap","gapVal", v=>v.toFixed(1)+"초","gap", updateEstimate);
+  bindRange("repeat","repeatVal", v=>Math.round(v)+"회","repeat", updateEstimate);
   $("chimeChk").addEventListener("change", e => { state.chime = e.target.checked; save(); });
   $("hlChk").addEventListener("change", e => { state.highlight = e.target.checked; save(); });
   $("wordHlChk").addEventListener("change", e => { state.wordHl = e.target.checked; save(); });
@@ -1170,6 +1237,35 @@
   $("srtBtn").addEventListener("click", () => { if (cuesReady) downloadText(`announcer_${state.lang}.srt`, buildSubs(false)); });
   $("vttBtn").addEventListener("click", () => { if (cuesReady) downloadText(`announcer_${state.lang}.vtt`, buildSubs(true), "text/vtt;charset=utf-8"); });
 
+  // ---------- 선택 영역만 읽기 ----------
+  $("selBtn").addEventListener("click", () => {
+    const a = script.selectionStart, b = script.selectionEnd;
+    if (a === b) { toast("대본에서 읽을 부분을 드래그해 선택하세요"); script.focus(); return; }
+    const sel = script.value.slice(a, b).trim();
+    if (!sel) { toast("선택한 부분이 비어 있습니다"); return; }
+    if (!state.voiceURI) { toast("사용 가능한 음성이 없습니다"); return; }
+    if (synth) synth.cancel();
+    synth.speak(makeUtter(sel));
+    toast(`🖍 선택한 ${sel.length}자를 읽습니다`);
+  });
+
+  // ---------- 예상 재생 시간 ----------
+  function updateEstimate() {
+    const text = script.value.trim();
+    const el = $("estimate");
+    if (!text) { el.textContent = ""; return; }
+    const sents = splitSentences(text);
+    // 한국어/중국어는 글자 기준, 그 외는 단어 기준으로 대략 산출
+    const cjk = /[ㄱ-힝一-鿿぀-ヿ]/.test(text);
+    const units = cjk ? text.replace(/\s/g, "").length : (text.match(/\S+/g) || []).length;
+    const perUnit = cjk ? 0.18 : 0.42;                 // 단위당 초(보통 속도)
+    let sec = (units * perUnit) / (state.rate || 1);
+    sec += sents.length * (state.gap || 0) * (state.repeat || 1);
+    if (state.repeat > 1) sec *= state.repeat;
+    const m = Math.floor(sec / 60), ss = Math.round(sec % 60);
+    el.textContent = `· ${text.length}자 · 약 ${m > 0 ? m + "분 " : ""}${ss}초`;
+  }
+
   // ---------- 온보딩 ----------
   const ONB = [
     { icon:"🎙️", title:"아나운서에 오신 걸 환영합니다", body:"대본을 입력하면 <b>아나운서 목소리</b>로 읽어드립니다.<br>8개 언어, 남녀 6명의 목소리를 고를 수 있어요." },
@@ -1226,7 +1322,7 @@
   const LIB_KEY = "announcer-library";
   function loadLib() { try { return JSON.parse(localStorage.getItem(LIB_KEY) || "[]"); } catch (_) { return []; } }
   function saveLib(list) { try { localStorage.setItem(LIB_KEY, JSON.stringify(list.slice(0, 50))); } catch (_) {} }
-  let libFilter = "all";
+  let libFilter = "all", libQuery = "";
   function renderLib() {
     const all = loadLib(), box = $("libList");
     // 언어 태그 필터
@@ -1237,7 +1333,8 @@
         const n = all.filter(x => x.lang === l).length;
         return `<button data-f="${l}" class="${libFilter===l?"on":""}">${L?L.flag+" "+L.name:l} ${n}</button>`;
       })).join("");
-    const list = libFilter === "all" ? all : all.filter(x => x.lang === libFilter);
+    let list = libFilter === "all" ? all : all.filter(x => x.lang === libFilter);
+    if (libQuery) { const q = libQuery.toLowerCase(); list = list.filter(x => (x.title+" "+x.text).toLowerCase().includes(q)); }
     box.innerHTML = "";
     if (!list.length) { box.innerHTML = '<div class="lib-empty">저장된 대본이 없습니다.<br>대본을 입력하고 ⭐ 대본 저장을 눌러보세요.</div>'; return; }
     list.forEach((it) => {
@@ -1263,6 +1360,7 @@
   });
   $("libBtn").addEventListener("click", () => { renderLib(); $("lib").classList.toggle("show"); });
   $("libClose").addEventListener("click", () => $("lib").classList.remove("show"));
+  $("libSearch").addEventListener("input", (e) => { libQuery = e.target.value.trim(); renderLib(); });
   $("libTags").addEventListener("click", (e) => {
     const b = e.target.closest("button"); if (!b) return;
     libFilter = b.dataset.f; renderLib();
@@ -1291,6 +1389,7 @@
   script.addEventListener("input", () => {
     clearTimeout(autosaveTimer);
     autosaveTimer = setTimeout(() => { try { localStorage.setItem("announcer-last", script.value); } catch (_) {} }, 800);
+    updateEstimate();
   });
 
   // ---------- 글자 크기 ----------
@@ -1446,6 +1545,7 @@
     $("gapVal").textContent = Number(state.gap).toFixed(1)+"초";
     $("chimeChk").checked = state.chime; $("hlChk").checked = state.highlight;
     $("wordHlChk").checked = state.wordHl;
+    $("repeat").value = state.repeat; $("repeatVal").textContent = Math.round(state.repeat)+"회";
     $("normChk").checked = state.normalize; $("digitChk").checked = state.digitByDigit;
     $("dict").value = state.dict || "";
     $("dialogChk").checked = state.dialogue;
@@ -1469,6 +1569,7 @@
   buildSlots();  // 저장된 언어/성별 반영해 다시 그리기
   updateVoiceNow();
   if (fromLink) { flash("🔗 공유된 대본을 불러왔습니다."); }
+  updateEstimate();
   if (!state.onboarded && !fromLink) setTimeout(openOnb, 600);
 
   // ---------- Shortcuts ----------
