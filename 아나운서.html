@@ -532,6 +532,7 @@
       <summary><span>🎬 낭독 스타일</span></summary>
       <div class="group">
       <div class="styles" id="styles">
+        <button data-k="talk">🗨️ 자연스러운 대화</button>
         <button data-k="anchor" class="active">📺 뉴스 앵커</button>
         <button data-k="calm">🎬 차분한 내레이션</button>
         <button data-k="bright">✨ 발랄하게</button>
@@ -614,6 +615,8 @@
     <details class="sgroup">
       <summary><span>⚙️ 옵션</span></summary>
       <div class="group">
+      <div class="toggle-row"><span>자연스러운 억양 (사람처럼)</span><label class="switch"><input type="checkbox" id="naturalChk" checked><span class="slider"></span></label></div>
+      <div class="mini">쉼표에서 숨을 쉬고, 절마다 속도·억양이 미세하게 변하고, 문장 끝은 느려지고, 의문문은 톤이 올라갑니다.</div>
       <div class="toggle-row"><span>시작 알림음 (딩동댕)</span><label class="switch"><input type="checkbox" id="chimeChk"><span class="slider"></span></label></div>
       <div class="toggle-row"><span>문장 하이라이트</span><label class="switch"><input type="checkbox" id="hlChk" checked><span class="slider"></span></label></div>
       <div class="toggle-row"><span>단어 단위 하이라이트</span><label class="switch"><input type="checkbox" id="wordHlChk"><span class="slider"></span></label></div>
@@ -736,11 +739,12 @@
     chime: false, highlight: true,
     normalize: true, digitByDigit: false, dict: "",
     dialogue: false, bgmOn: false, bgmVolume: 0.2,
-    fontIdx: 1, theme: "dark", wordHl: false, onboarded: false, repeat: 1,
+    fontIdx: 1, theme: "dark", wordHl: false, onboarded: false, repeat: 1, natural: true,
   };
 
   // ---------- 낭독 스타일 프리셋 (rate/pitch/gap/chime 묶음) ----------
   const STYLES = {
+    talk:   { rate: 1.04, pitch: 1.02, gap: 0.38, chime: false, natural: true },
     anchor: { rate: 0.95, pitch: 1.0,  gap: 0.5, chime: false },
     calm:   { rate: 0.88, pitch: 0.95, gap: 0.7, chime: false },
     bright: { rate: 1.15, pitch: 1.08, gap: 0.25, chime: false },
@@ -1069,41 +1073,111 @@
     return u;
   }
   function now(){ return (window.performance && performance.now) ? performance.now() : Date.now(); }
+  // ── 문장 종료 공통 처리(반복·화자 쉼·호흡) ──
+  function afterSentence(i) {
+    queue[i]._e = (now() - playT0) / 1000; wordRange = null;
+    if (!playing) return;
+    // 학습용 문장 반복
+    if (state.repeat > 1) {
+      repeatLeft = (repeatLeft === null) ? state.repeat - 1 : repeatLeft - 1;
+      if (repeatLeft > 0) {
+        gapTimer = setTimeout(() => { if (playing) { const rl = repeatLeft; speakSentence(i); repeatLeft = rl; } }, state.gap * 1000);
+        return;
+      }
+      repeatLeft = null;
+    }
+    // 화자가 바뀌면 살짝 더 긴 쉼
+    const next = queue[i+1];
+    const speakerChanged = state.dialogue && next && next.speaker && queue[i].speaker && (next.speaker.gender !== queue[i].speaker.gender || next.speaker.index !== queue[i].speaker.index);
+    let g = state.gap * (speakerChanged ? 1.6 : 1) * 1000;
+    if (state.natural) {
+      // 사람의 호흡: 긴 문장 뒤엔 더 긴 숨 + 매번 미세하게 다른 쉼
+      g += Math.min(320, queue[i].text.length * 2.6);
+      g *= (0.85 + Math.random() * 0.3);
+    }
+    gapTimer = setTimeout(() => { if (playing) speakSentence(i+1); }, g);
+  }
+
+  // ── 자연스러운 억양(프로소디) 유틸 ──
+  function clausesOf(text) {
+    // 쉼표·중간점·세미콜론에서 호흡 단위로 분할 (너무 짧은 조각은 앞과 결합)
+    const raw = text.split(/(?<=[,，、;；·…])\s*/).map(t => t.trim()).filter(Boolean);
+    const out = [];
+    raw.forEach(part => {
+      if (out.length && (part.length < 4 || out[out.length-1].length < 4)) out[out.length-1] += " " + part;
+      else out.push(part);
+    });
+    return out.length ? out : [text];
+  }
+
+  function attachWordBoundary(u, i, clOffset, clText) {
+    if (!state.wordHl) return;
+    u.onboundary = (ev) => {
+      if (ev.name && ev.name !== "word") return;
+      if (typeof ev.charIndex !== "number") return;
+      const len = ev.charLength || (clText.slice(ev.charIndex).match(/^\S+/) || [""])[0].length || 0;
+      wordRange = [clOffset + ev.charIndex, clOffset + ev.charIndex + len];
+      renderOverlay();
+    };
+  }
+
   function speakSentence(i) {
     if (i >= queue.length) { finish(); return; }
     cursor = i; renderOverlay(); updateMeta();
-    if (repeatLeft === null) { /* 새 문장 */ }
-    const u = makeUtter(queue[i].text, queue[i].speaker);
-    u.onstart = () => { queue[i]._s = (now() - playT0) / 1000; wordRange = null; };
-    if (state.wordHl) {
-      u.onboundary = (ev) => {
-        if (ev.name && ev.name !== "word") return;
-        if (typeof ev.charIndex !== "number") return;
-        const len = ev.charLength || (queue[i].text.slice(ev.charIndex).match(/^\S+/) || [""])[0].length || 0;
-        wordRange = [ev.charIndex, ev.charIndex + len];
-        renderOverlay();
-      };
+
+    if (!state.natural) {
+      // ── 기본 모드: 문장 단위 단일 발화 ──
+      const u = makeUtter(queue[i].text, queue[i].speaker);
+      u.onstart = () => { queue[i]._s = (now() - playT0) / 1000; wordRange = null; };
+      attachWordBoundary(u, i, 0, queue[i].text);
+      u.onend = () => afterSentence(i);
+      u.onerror = () => { if (playing) speakSentence(i+1); };
+      synth.speak(u);
+      return;
     }
-    u.onend = () => {
-      queue[i]._e = (now() - playT0) / 1000; wordRange = null;
+
+    // ── 자연 모드: 절 단위 발화 + 사람 같은 미세 변화 ──
+    const item = queue[i];
+    const clauses = clausesOf(item.text);
+    const isQuestion = /[??]\s*$/.test(item.text);
+    const isExclaim = /[!!]\s*$/.test(item.text);
+    const pitchDrift = (Math.random() * 2 - 1) * 0.05;   // 문장마다 다른 억양 기저
+    let ci = 0, searchFrom = 0;
+
+    const speakNext = () => {
       if (!playing) return;
-      // 학습용 문장 반복
-      if (state.repeat > 1) {
-        repeatLeft = (repeatLeft === null) ? state.repeat - 1 : repeatLeft - 1;
-        if (repeatLeft > 0) {
-          gapTimer = setTimeout(() => { if (playing) { const rl = repeatLeft; speakSentence(i); repeatLeft = rl; } }, state.gap * 1000);
-          return;
+      const cl = clauses[ci];
+      const found = item.text.indexOf(cl, searchFrom);
+      const clOffset = found >= 0 ? found : searchFrom;
+      const last = ci === clauses.length - 1;
+
+      const u = makeUtter(cl, item.speaker);
+      // 절마다 속도 미세 변화(±3.5%), 문장 끝 절은 5% 감속 — 단조로움 제거
+      let r = u.rate * (1 + (Math.random() * 2 - 1) * 0.035);
+      if (last) r *= 0.95;
+      if (isExclaim && last) r *= 1.05;
+      u.rate = Math.max(0.5, Math.min(2, r));
+      // 문장별 억양 드리프트 + 의문문 끝 상승
+      let pt = u.pitch + pitchDrift;
+      if (isQuestion && last) pt += 0.08;
+      u.pitch = Math.max(0, Math.min(2, pt));
+
+      if (ci === 0) u.onstart = () => { item._s = (now() - playT0) / 1000; wordRange = null; };
+      attachWordBoundary(u, i, clOffset, cl);
+      const advance = () => {
+        if (!playing) return;
+        ci++; searchFrom = clOffset + cl.length;
+        if (ci >= clauses.length) { afterSentence(i); }
+        else {
+          // 쉼표 호흡: 130~280ms 무작위 (기계적 균일함 제거)
+          gapTimer = setTimeout(speakNext, 130 + Math.random() * 150);
         }
-        repeatLeft = null;
-      }
-      // 화자가 바뀌면 살짝 더 긴 쉼
-      const next = queue[i+1];
-      const speakerChanged = state.dialogue && next && next.speaker && queue[i].speaker && (next.speaker.gender !== queue[i].speaker.gender || next.speaker.index !== queue[i].speaker.index);
-      const g = state.gap * (speakerChanged ? 1.6 : 1) * 1000;
-      gapTimer = setTimeout(() => { if (playing) speakSentence(i+1); }, g);
+      };
+      u.onend = advance;
+      u.onerror = advance;
+      synth.speak(u);
     };
-    u.onerror = () => { if (playing) speakSentence(i+1); };
-    synth.speak(u);
+    speakNext();
   }
   async function start() {
     queue = splitSentences(script.value);
@@ -1274,6 +1348,7 @@
   $("chimeChk").addEventListener("change", e => { state.chime = e.target.checked; save(); });
   $("hlChk").addEventListener("change", e => { state.highlight = e.target.checked; save(); });
   $("wordHlChk").addEventListener("change", e => { state.wordHl = e.target.checked; save(); });
+  $("naturalChk").addEventListener("change", e => { state.natural = e.target.checked; save(); });
   $("normChk").addEventListener("change", e => { state.normalize = e.target.checked; save(); });
   $("digitChk").addEventListener("change", e => { state.digitByDigit = e.target.checked; save(); });
   $("dict").addEventListener("input", e => { state.dict = e.target.value; save(); });
@@ -1284,6 +1359,7 @@
     state.style = b.dataset.k;
     const p = STYLES[state.style]; if (!p) return;
     state.rate = p.rate; state.pitch = p.pitch; state.gap = p.gap; state.chime = p.chime;
+    if (typeof p.natural === "boolean") state.natural = p.natural;
     reflect();
     document.querySelectorAll("#styles button").forEach(x => x.classList.toggle("active", x===b));
     save();
@@ -1637,6 +1713,7 @@
     $("gapVal").textContent = Number(state.gap).toFixed(1)+"초";
     $("chimeChk").checked = state.chime; $("hlChk").checked = state.highlight;
     $("wordHlChk").checked = state.wordHl;
+    $("naturalChk").checked = state.natural;
     $("repeat").value = state.repeat; $("repeatVal").textContent = Math.round(state.repeat)+"회";
     $("normChk").checked = state.normalize; $("digitChk").checked = state.digitByDigit;
     $("dict").value = state.dict || "";
