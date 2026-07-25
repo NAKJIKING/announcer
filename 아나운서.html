@@ -122,6 +122,32 @@
     *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
   }
 
+  /* 온보딩 */
+  .onb { position: fixed; inset: 0; background: rgba(0,0,0,.62); backdrop-filter: blur(4px);
+         display: none; align-items: center; justify-content: center; z-index: 200; padding: 20px; }
+  .onb.show { display: flex; }
+  .onb-card { background: var(--panel); border: 1px solid var(--border); border-radius: 16px;
+              box-shadow: var(--shadow); padding: 24px; max-width: 380px; width: 100%; }
+  .onb-step { font-size: 14.5px; line-height: 1.75; min-height: 128px; }
+  .onb-step h3 { font-size: 18px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .onb-step b { color: var(--accent); }
+  .onb-dots { display: flex; gap: 6px; justify-content: center; margin: 16px 0; }
+  .onb-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--border); transition: all var(--dur); }
+  .onb-dots i.on { background: var(--accent); width: 20px; border-radius: var(--radius-pill); }
+  .onb-btns { display: flex; gap: 8px; justify-content: space-between; align-items: center; }
+  button.act.primary-btn { background: linear-gradient(135deg, var(--accent), #ff6f2d); border: none; color: #fff; }
+
+  /* 보관함 태그·푸터 */
+  .lib-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .lib-tags button { background: var(--panel2); border: 1px solid var(--border); color: var(--text-dim);
+                     padding: 5px 11px; border-radius: var(--radius-pill); font-size: 11.5px; cursor: pointer;
+                     font-family: inherit; font-weight: 600; }
+  .lib-tags button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .lib-foot { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+
+  /* 단어 하이라이트 */
+  #overlay .word { background: var(--accent); color: #fff; border-radius: 3px; padding: 0 1px; }
+
   main { flex: 1; display: flex; min-height: 0; }
   .left { flex: 1; display: flex; flex-direction: column; min-width: 0; padding: 16px 18px; gap: 13px; }
 
@@ -291,6 +317,17 @@
 </header>
 <div class="toast" id="toast"></div>
 
+<div class="onb" id="onb">
+  <div class="onb-card">
+    <div class="onb-step" id="onbBody"></div>
+    <div class="onb-dots" id="onbDots"></div>
+    <div class="onb-btns">
+      <button class="chip" id="onbSkip">건너뛰기</button>
+      <button class="act primary-btn" id="onbNext">다음</button>
+    </div>
+  </div>
+</div>
+
 <main>
   <section class="left">
     <div class="banner" id="voiceBanner"></div>
@@ -331,7 +368,12 @@
 
     <div class="lib" id="lib">
       <div class="lib-head">📚 내 대본 <button class="chip" id="libClose">✕</button></div>
+      <div class="lib-tags" id="libTags"></div>
       <div class="lib-list" id="libList"></div>
+      <div class="lib-foot">
+        <button class="chip" id="batchBtn">⚡ 전체 이어서 재생</button>
+        <button class="chip" id="libExport">⬇ 전체 내보내기(.txt)</button>
+      </div>
     </div>
     <div class="script-wrap">
       <div id="overlay"></div>
@@ -434,6 +476,9 @@
       <h2>옵션</h2>
       <div class="toggle-row"><span>시작 알림음 (딩동댕)</span><label class="switch"><input type="checkbox" id="chimeChk"><span class="slider"></span></label></div>
       <div class="toggle-row"><span>문장 하이라이트</span><label class="switch"><input type="checkbox" id="hlChk" checked><span class="slider"></span></label></div>
+      <div class="toggle-row"><span>단어 단위 하이라이트</span><label class="switch"><input type="checkbox" id="wordHlChk"><span class="slider"></span></label></div>
+      <div class="mini">읽는 단어를 실시간으로 표시합니다. (일부 브라우저만 지원)</div>
+      <button class="chip" id="helpBtn" style="align-self:flex-start;margin-top:4px">❓ 사용법 다시 보기</button>
     </div>
 
     <div class="hr"></div>
@@ -545,7 +590,7 @@
     chime: false, highlight: true,
     normalize: true, digitByDigit: false, dict: "",
     dialogue: false, bgmOn: false, bgmVolume: 0.2,
-    fontIdx: 1, theme: "dark",
+    fontIdx: 1, theme: "dark", wordHl: false, onboarded: false,
   };
 
   // ---------- 낭독 스타일 프리셋 (rate/pitch/gap/chime 묶음) ----------
@@ -823,7 +868,7 @@
 
   // ---------- Playback ----------
   let queue = [], cursor = -1, playing = false, gapTimer = null;
-  let playT0 = 0, cuesReady = false;
+  let playT0 = 0, cuesReady = false, wordRange = null;
 
   function setTransport(on) {
     playing = on;
@@ -842,7 +887,16 @@
     queue.forEach((q, i) => {
       if (q.start > pos) html += escapeHtml(full.slice(pos, q.start));
       const cls = i < cursor ? "done" : (i === cursor ? "cur" : "");
-      html += `<span class="${cls}">${escapeHtml(full.slice(q.start, q.end))}</span>`;
+      const seg = full.slice(q.start, q.end);
+      if (i === cursor && state.wordHl && wordRange) {
+        // 현재 문장 안에서 읽고 있는 단어만 강조
+        const a = Math.max(0, wordRange[0]), bb = Math.min(seg.length, wordRange[1]);
+        html += `<span class="${cls}">${escapeHtml(seg.slice(0,a))}` +
+                `<span class="word">${escapeHtml(seg.slice(a,bb))}</span>` +
+                `${escapeHtml(seg.slice(bb))}</span>`;
+      } else {
+        html += `<span class="${cls}">${escapeHtml(seg)}</span>`;
+      }
       pos = q.end;
     });
     if (pos < full.length) html += escapeHtml(full.slice(pos));
@@ -873,9 +927,18 @@
     if (i >= queue.length) { finish(); return; }
     cursor = i; renderOverlay(); updateMeta();
     const u = makeUtter(queue[i].text, queue[i].speaker);
-    u.onstart = () => { queue[i]._s = (now() - playT0) / 1000; };
+    u.onstart = () => { queue[i]._s = (now() - playT0) / 1000; wordRange = null; };
+    if (state.wordHl) {
+      u.onboundary = (ev) => {
+        if (ev.name && ev.name !== "word") return;
+        if (typeof ev.charIndex !== "number") return;
+        const len = ev.charLength || (queue[i].text.slice(ev.charIndex).match(/^\S+/) || [""])[0].length || 0;
+        wordRange = [ev.charIndex, ev.charIndex + len];
+        renderOverlay();
+      };
+    }
     u.onend = () => {
-      queue[i]._e = (now() - playT0) / 1000;
+      queue[i]._e = (now() - playT0) / 1000; wordRange = null;
       if (!playing) return;
       // 화자가 바뀌면 살짝 더 긴 쉼
       const next = queue[i+1];
@@ -1051,6 +1114,7 @@
   bindRange("gap","gapVal", v=>v.toFixed(1)+"초","gap");
   $("chimeChk").addEventListener("change", e => { state.chime = e.target.checked; save(); });
   $("hlChk").addEventListener("change", e => { state.highlight = e.target.checked; save(); });
+  $("wordHlChk").addEventListener("change", e => { state.wordHl = e.target.checked; save(); });
   $("normChk").addEventListener("change", e => { state.normalize = e.target.checked; save(); });
   $("digitChk").addEventListener("change", e => { state.digitByDigit = e.target.checked; save(); });
   $("dict").addEventListener("input", e => { state.dict = e.target.value; save(); });
@@ -1106,6 +1170,28 @@
   $("srtBtn").addEventListener("click", () => { if (cuesReady) downloadText(`announcer_${state.lang}.srt`, buildSubs(false)); });
   $("vttBtn").addEventListener("click", () => { if (cuesReady) downloadText(`announcer_${state.lang}.vtt`, buildSubs(true), "text/vtt;charset=utf-8"); });
 
+  // ---------- 온보딩 ----------
+  const ONB = [
+    { icon:"🎙️", title:"아나운서에 오신 걸 환영합니다", body:"대본을 입력하면 <b>아나운서 목소리</b>로 읽어드립니다.<br>8개 언어, 남녀 6명의 목소리를 고를 수 있어요." },
+    { icon:"🌐", title:"언어와 목소리 고르기", body:"위쪽 <b>언어 · 목소리</b> 줄을 누르면 펼쳐집니다.<br>언어를 바꾸면 그 나라 목소리와 예시 대본으로 함께 바뀝니다." },
+    { icon:"▶️", title:"읽어보기", body:"대본을 넣고 <b>방송 시작</b>을 누르세요.<br>읽는 문장이 <b>하이라이트</b>되고, 그 문장을 탭하면 거기서부터 다시 읽습니다." },
+    { icon:"⚙️", title:"더 다듬기", body:"아래 설정에서 <b>속도·낭독 스타일·발음 사전·대화 모드</b>를 조절할 수 있어요.<br>PC에서는 <b>🔴 녹음</b>으로 음성 파일도 저장됩니다." },
+  ];
+  let onbIdx = 0;
+  function renderOnb() {
+    const s = ONB[onbIdx];
+    $("onbBody").innerHTML = `<h3>${s.icon} ${s.title}</h3><div>${s.body}</div>`;
+    $("onbDots").innerHTML = ONB.map((_, i) => `<i class="${i===onbIdx?"on":""}"></i>`).join("");
+    $("onbNext").textContent = onbIdx === ONB.length - 1 ? "시작하기" : "다음";
+  }
+  function openOnb() { onbIdx = 0; renderOnb(); $("onb").classList.add("show"); }
+  function closeOnb() { $("onb").classList.remove("show"); state.onboarded = true; save(); }
+  $("onbNext").addEventListener("click", () => {
+    if (onbIdx < ONB.length - 1) { onbIdx++; renderOnb(); } else closeOnb();
+  });
+  $("onbSkip").addEventListener("click", closeOnb);
+  $("helpBtn").addEventListener("click", openOnb);
+
   // ---------- 테마 (라이트/다크) ----------
   function applyTheme() {
     const light = state.theme === "light";
@@ -1140,11 +1226,22 @@
   const LIB_KEY = "announcer-library";
   function loadLib() { try { return JSON.parse(localStorage.getItem(LIB_KEY) || "[]"); } catch (_) { return []; } }
   function saveLib(list) { try { localStorage.setItem(LIB_KEY, JSON.stringify(list.slice(0, 50))); } catch (_) {} }
+  let libFilter = "all";
   function renderLib() {
-    const list = loadLib(), box = $("libList");
+    const all = loadLib(), box = $("libList");
+    // 언어 태그 필터
+    const langs = [...new Set(all.map(x => x.lang).filter(Boolean))];
+    $("libTags").innerHTML = [`<button data-f="all" class="${libFilter==="all"?"on":""}">전체 ${all.length}</button>`]
+      .concat(langs.map(l => {
+        const L = LANGS.find(x => x.code === l);
+        const n = all.filter(x => x.lang === l).length;
+        return `<button data-f="${l}" class="${libFilter===l?"on":""}">${L?L.flag+" "+L.name:l} ${n}</button>`;
+      })).join("");
+    const list = libFilter === "all" ? all : all.filter(x => x.lang === libFilter);
     box.innerHTML = "";
     if (!list.length) { box.innerHTML = '<div class="lib-empty">저장된 대본이 없습니다.<br>대본을 입력하고 ⭐ 대본 저장을 눌러보세요.</div>'; return; }
-    list.forEach((it, i) => {
+    list.forEach((it) => {
+      const i = all.indexOf(it);
       const row = document.createElement("div"); row.className = "lib-item";
       const t = document.createElement("div"); t.className = "t"; t.textContent = it.title;
       t.title = "불러오기";
@@ -1166,6 +1263,28 @@
   });
   $("libBtn").addEventListener("click", () => { renderLib(); $("lib").classList.toggle("show"); });
   $("libClose").addEventListener("click", () => $("lib").classList.remove("show"));
+  $("libTags").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    libFilter = b.dataset.f; renderLib();
+  });
+  // 배치: 보관함의 대본을 모두 이어서 재생
+  $("batchBtn").addEventListener("click", () => {
+    const all = loadLib();
+    const list = libFilter === "all" ? all : all.filter(x => x.lang === libFilter);
+    if (!list.length) { toast("재생할 대본이 없습니다."); return; }
+    script.value = list.map(x => x.text).join("\n\n");
+    $("lib").classList.remove("show");
+    toast(`⚡ ${list.length}개 대본을 이어서 재생합니다`);
+    setTimeout(() => start(), 300);
+  });
+  $("libExport").addEventListener("click", () => {
+    const all = loadLib();
+    const list = libFilter === "all" ? all : all.filter(x => x.lang === libFilter);
+    if (!list.length) { toast("내보낼 대본이 없습니다."); return; }
+    const body = list.map((x, i) => `[${i+1}] ${x.title}\n${x.text}`).join("\n\n---\n\n");
+    downloadText("announcer_scripts.txt", body);
+    toast("⬇ 대본을 내보냈습니다");
+  });
 
   // 최근 대본 자동 저장(입력 멈추면)
   let autosaveTimer = null;
@@ -1326,6 +1445,7 @@
     $("volumeVal").textContent = Math.round(state.volume*100)+"%";
     $("gapVal").textContent = Number(state.gap).toFixed(1)+"초";
     $("chimeChk").checked = state.chime; $("hlChk").checked = state.highlight;
+    $("wordHlChk").checked = state.wordHl;
     $("normChk").checked = state.normalize; $("digitChk").checked = state.digitByDigit;
     $("dict").value = state.dict || "";
     $("dialogChk").checked = state.dialogue;
@@ -1349,6 +1469,7 @@
   buildSlots();  // 저장된 언어/성별 반영해 다시 그리기
   updateVoiceNow();
   if (fromLink) { flash("🔗 공유된 대본을 불러왔습니다."); }
+  if (!state.onboarded && !fromLink) setTimeout(openOnb, 600);
 
   // ---------- Shortcuts ----------
   // ---------- 재생 중 문장 탭 → 그 문장부터 재생 ----------
