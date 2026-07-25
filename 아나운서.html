@@ -81,6 +81,28 @@
   .chip:hover:not(:disabled) { border-color: var(--accent); color: var(--text); }
   .chip:disabled { opacity: .4; cursor: not-allowed; }
 
+  /* 접이식 섹션 */
+  .fold { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .fold > summary { list-style: none; cursor: pointer; padding: 12px 14px; display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 13.5px; user-select: none; }
+  .fold > summary::-webkit-details-marker { display: none; }
+  .fold > summary::after { content: "▾"; margin-left: auto; color: var(--text-dim); transition: transform .2s; }
+  .fold[open] > summary::after { transform: rotate(180deg); }
+  .fold > summary:hover { background: var(--panel2); }
+  .fold .sum-now { color: var(--accent); font-weight: 700; font-size: 12.5px; }
+  .fold-body { padding: 0 14px 14px; }
+
+  /* 대본 보관함 */
+  .lib { display: none; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; }
+  .lib.show { display: block; }
+  .lib-head { display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 13px; margin-bottom: 8px; }
+  .lib-list { display: flex; flex-direction: column; gap: 6px; max-height: 240px; overflow-y: auto; }
+  .lib-item { display: flex; align-items: center; gap: 8px; background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; padding: 9px 11px; }
+  .lib-item .t { flex: 1; min-width: 0; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+  .lib-item .t:hover { color: var(--accent); }
+  .lib-item .del { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 14px; padding: 2px 6px; }
+  .lib-item .del:hover { color: var(--danger); }
+  .lib-empty { color: var(--text-dim); font-size: 12.5px; text-align: center; padding: 14px; }
+
   /* Script */
   .script-wrap { flex: 1; position: relative; min-height: 120px; }
   #script, #overlay { position: absolute; inset: 0; width: 100%; height: 100%; padding: 18px 20px; font-size: 18px; line-height: 1.8; font-family: inherit; border-radius: var(--radius); border: 1px solid var(--border); white-space: pre-wrap; word-break: break-word; overflow-y: auto; }
@@ -161,7 +183,25 @@
     /* 설정 패널을 숨기지 않고 본문 아래에 이어서 표시 */
     .right { width: 100%; border-left: none; border-top: 1px solid var(--border); }
     .ann-groups { grid-template-columns: 1fr; }
-    .script-wrap { flex: none; height: 42vh; min-height: 240px; }
+    .script-wrap { flex: none; height: 38vh; min-height: 200px; }
+    /* 헤더 2줄 깨짐 방지 */
+    header { padding: 10px 14px; gap: 9px; }
+    header h1 { font-size: 16px; white-space: nowrap; }
+    header .sub { display: none; }
+    .logo { width: 28px; height: 28px; font-size: 16px; }
+    /* 재생바를 화면 하단에 항상 고정 */
+    .transport {
+      position: sticky; bottom: 0; z-index: 18;
+      background: rgba(18,21,29,.96); backdrop-filter: blur(8px);
+      margin: 0 -14px; padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+      border-top: 1px solid var(--border);
+    }
+    /* 터치 영역 확대 */
+    button.act { padding: 13px 16px; min-height: 48px; }
+    .chip { padding: 10px 14px; min-height: 40px; }
+    .lang { padding: 10px 15px; min-height: 42px; }
+    .ann { padding: 12px 6px; }
+    .transport .meta { width: 100%; order: 10; }
   }
 </style>
 </head>
@@ -177,31 +217,43 @@
   <section class="left">
     <div class="banner" id="voiceBanner"></div>
 
-    <div>
-      <div class="section-label">🌐 언어</div>
-      <div class="langbar" id="langbar"></div>
-    </div>
-
-    <div>
-      <div class="section-label">🎧 아나운서 선택 (남·여 3명씩)</div>
-      <div class="ann-groups">
-        <div class="ann-group female">
-          <div class="gh">👩‍💼 여성 아나운서</div>
-          <div class="ann-row" id="femaleRow"></div>
-        </div>
-        <div class="ann-group male">
-          <div class="gh">👨‍💼 남성 아나운서</div>
-          <div class="ann-row" id="maleRow"></div>
+    <details class="fold" id="voiceFold">
+      <summary>
+        <span class="sum-title">🌐 언어 · 🎧 목소리</span>
+        <span class="sum-now" id="voiceNow">한국어 · 여성 1</span>
+      </summary>
+      <div class="fold-body">
+        <div class="section-label">🌐 언어</div>
+        <div class="langbar" id="langbar"></div>
+        <div class="section-label" style="margin-top:12px">🎧 아나운서 선택 (남·여 3명씩)</div>
+        <div class="ann-groups">
+          <div class="ann-group female">
+            <div class="gh">👩‍💼 여성 아나운서</div>
+            <div class="ann-row" id="femaleRow"></div>
+          </div>
+          <div class="ann-group male">
+            <div class="gh">👨‍💼 남성 아나운서</div>
+            <div class="ann-row" id="maleRow"></div>
+          </div>
         </div>
       </div>
-    </div>
+    </details>
 
     <div class="io-row">
       <button class="chip" id="importBtn">📄 불러오기(.txt)</button>
       <button class="chip" id="pasteBtn">📋 붙여넣기</button>
-      <button class="chip" id="srtBtn" disabled title="한 번 방송을 재생하면 타이밍이 생성됩니다.">💬 자막 저장(SRT)</button>
+      <button class="chip" id="saveBtn">⭐ 대본 저장</button>
+      <button class="chip" id="libBtn">📚 내 대본</button>
+      <button class="chip" id="srtBtn" disabled title="한 번 방송을 재생하면 타이밍이 생성됩니다.">💬 자막(SRT)</button>
       <button class="chip" id="vttBtn" disabled>💬 VTT</button>
+      <button class="chip" id="fontBtn" title="글자 크기">🔠 크기</button>
+      <button class="chip" id="linkBtn" title="대본+설정을 링크로 공유">🔗 링크 공유</button>
       <input type="file" id="fileInput" accept=".txt,text/plain" hidden>
+    </div>
+
+    <div class="lib" id="lib">
+      <div class="lib-head">📚 내 대본 <button class="chip" id="libClose">✕</button></div>
+      <div class="lib-list" id="libList"></div>
     </div>
     <div class="script-wrap">
       <div id="overlay"></div>
@@ -415,6 +467,7 @@
     chime: false, highlight: true,
     normalize: true, digitByDigit: false, dict: "",
     dialogue: false, bgmOn: false, bgmVolume: 0.2,
+    fontIdx: 1,
   };
 
   // ---------- 낭독 스타일 프리셋 (rate/pitch/gap/chime 묶음) ----------
@@ -547,7 +600,14 @@
     });
     // 배너
     if (!synth) { showBanner("⚠️ 이 브라우저는 음성 합성을 지원하지 않습니다. Chrome/Edge 최신 버전을 사용하세요."); }
-    else if (noVoices) { showBanner(`ℹ️ '${langName(state.lang)}' 음성이 설치되어 있지 않습니다. Windows 설정 → 시간 및 언어 → 음성, 또는 Edge에서 온라인(Natural) 음성을 사용해 보세요.`); }
+    else if (noVoices) {
+      const isAndroid = /Android/i.test(navigator.userAgent);
+      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const how = isAndroid ? "설정 → 일반 → 접근성 → 텍스트 음성 변환에서 음성을 추가해 보세요."
+                : isIOS ? "설정 → 손쉬운 사용 → 음성 콘텐츠 → 음성에서 해당 언어를 추가해 보세요."
+                : "Windows 설정 → 시간 및 언어 → 음성, 또는 Edge의 온라인(Natural) 음성을 사용해 보세요.";
+      showBanner(`ℹ️ '${langName(state.lang)}' 음성이 설치되어 있지 않습니다. ${how}`);
+    }
     else hideBanner();
   }
   function isPremiumURI(uri){ const v = voices.find(x=>x.voiceURI===uri); return v && isPremium(v); }
@@ -564,6 +624,7 @@
     else { state.voiceURI = null; state.slotPitch = 1; }
     document.querySelectorAll(".ann").forEach(b => b.classList.toggle("active", b.dataset.g===state.gender && +b.dataset.i===state.slotIndex));
     updateVoiceHint(slot);
+    if (typeof updateVoiceNow === "function") updateVoiceNow();
     save();
   }
   function updateVoiceHint(slot){
@@ -788,8 +849,13 @@
   const recResult = $("recResult"), recAudio = $("recAudio"), recInfo = $("recInfo");
   let mediaRecorder = null, recChunks = [], recStream = null, recording = false, lastBlob = null, lastExt = "webm";
 
-  const recSupported = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia && window.MediaRecorder);
-  if (!recSupported) { recBtn.disabled = true; recBtn.title = "이 브라우저에서는 녹음을 지원하지 않습니다."; }
+  const isMobileUA = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const recSupported = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia && window.MediaRecorder) && !isMobileUA;
+  if (!recSupported) {
+    recBtn.disabled = true;
+    recBtn.title = isMobileUA ? "녹음은 PC(크롬·엣지)에서 지원됩니다." : "이 브라우저에서는 녹음을 지원하지 않습니다.";
+    if (isMobileUA) recBtn.textContent = "🔴 녹음(PC 전용)";
+  }
 
   function pickMime() {
     const cands = ["audio/webm;codecs=opus","audio/webm","audio/ogg;codecs=opus","audio/mp4"];
@@ -961,6 +1027,100 @@
   $("srtBtn").addEventListener("click", () => { if (cuesReady) downloadText(`announcer_${state.lang}.srt`, buildSubs(false)); });
   $("vttBtn").addEventListener("click", () => { if (cuesReady) downloadText(`announcer_${state.lang}.vtt`, buildSubs(true), "text/vtt;charset=utf-8"); });
 
+  // ---------- 현재 선택 요약(접이식 헤더) ----------
+  function updateVoiceNow() {
+    const L = LANGS.find(x => x.code === state.lang);
+    const who = (state.gender === "F" ? "여성 " : "남성 ") + (state.slotIndex + 1);
+    $("voiceNow").textContent = `${L ? L.flag + " " + L.name : state.lang} · ${who}`;
+  }
+
+  // ---------- 대본 보관함 ----------
+  const LIB_KEY = "announcer-library";
+  function loadLib() { try { return JSON.parse(localStorage.getItem(LIB_KEY) || "[]"); } catch (_) { return []; } }
+  function saveLib(list) { try { localStorage.setItem(LIB_KEY, JSON.stringify(list.slice(0, 50))); } catch (_) {} }
+  function renderLib() {
+    const list = loadLib(), box = $("libList");
+    box.innerHTML = "";
+    if (!list.length) { box.innerHTML = '<div class="lib-empty">저장된 대본이 없습니다.<br>대본을 입력하고 ⭐ 대본 저장을 눌러보세요.</div>'; return; }
+    list.forEach((it, i) => {
+      const row = document.createElement("div"); row.className = "lib-item";
+      const t = document.createElement("div"); t.className = "t"; t.textContent = it.title;
+      t.title = "불러오기";
+      t.addEventListener("click", () => { script.value = it.text; stop(); $("lib").classList.remove("show"); script.focus(); });
+      const del = document.createElement("button"); del.className = "del"; del.textContent = "🗑";
+      del.title = "삭제";
+      del.addEventListener("click", () => { const l = loadLib(); l.splice(i, 1); saveLib(l); renderLib(); });
+      row.appendChild(t); row.appendChild(del); box.appendChild(row);
+    });
+  }
+  $("saveBtn").addEventListener("click", () => {
+    const text = script.value.trim();
+    if (!text) { flash("저장할 대본이 없습니다."); return; }
+    const title = text.replace(/\s+/g, " ").slice(0, 40) + (text.length > 40 ? "…" : "");
+    const list = loadLib().filter(x => x.text !== text);
+    list.unshift({ title, text, lang: state.lang });
+    saveLib(list); renderLib();
+    flash("⭐ 대본을 저장했습니다.");
+  });
+  $("libBtn").addEventListener("click", () => { renderLib(); $("lib").classList.toggle("show"); });
+  $("libClose").addEventListener("click", () => $("lib").classList.remove("show"));
+
+  // 최근 대본 자동 저장(입력 멈추면)
+  let autosaveTimer = null;
+  script.addEventListener("input", () => {
+    clearTimeout(autosaveTimer);
+    autosaveTimer = setTimeout(() => { try { localStorage.setItem("announcer-last", script.value); } catch (_) {} }, 800);
+  });
+
+  // ---------- 글자 크기 ----------
+  const FONT_STEPS = [16, 18, 21, 24, 28];
+  function applyFont() {
+    const px = FONT_STEPS[state.fontIdx] || 18;
+    script.style.fontSize = px + "px"; overlay.style.fontSize = px + "px";
+  }
+  $("fontBtn").addEventListener("click", () => {
+    state.fontIdx = (state.fontIdx + 1) % FONT_STEPS.length;
+    applyFont(); save(); flash(`글자 크기 ${FONT_STEPS[state.fontIdx]}px`);
+  });
+
+  // ---------- 링크 공유 (대본+설정을 URL로) ----------
+  function buildShareUrl() {
+    const payload = { t: script.value, l: state.lang, g: state.gender, i: state.slotIndex,
+                      r: state.rate, p: state.pitch, gap: state.gap, st: state.style };
+    const json = JSON.stringify(payload);
+    const b64 = btoa(unescape(encodeURIComponent(json))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+    return location.origin + location.pathname + "#s=" + b64;
+  }
+  function applyShareHash() {
+    const m = (location.hash || "").match(/[#&]s=([^&]+)/);
+    if (!m) return false;
+    try {
+      let b64 = m[1].replace(/-/g,"+").replace(/_/g,"/");
+      while (b64.length % 4) b64 += "=";
+      const o = JSON.parse(decodeURIComponent(escape(atob(b64))));
+      if (typeof o.t === "string") script.value = o.t;
+      if (o.l) state.lang = o.l;
+      if (o.g) state.gender = o.g;
+      if (typeof o.i === "number") state.slotIndex = o.i;
+      if (typeof o.r === "number") state.rate = o.r;
+      if (typeof o.p === "number") state.pitch = o.p;
+      if (typeof o.gap === "number") state.gap = o.gap;
+      if (o.st) state.style = o.st;
+      return true;
+    } catch (_) { return false; }
+  }
+  // 앱이 열려 있는 상태에서 공유 링크를 열어도 반영되도록
+  window.addEventListener("hashchange", () => {
+    if (applyShareHash()) { reflect(); buildSlots(); updateVoiceNow(); stop(); flash("🔗 공유된 대본을 불러왔습니다."); }
+  });
+  $("linkBtn").addEventListener("click", async () => {
+    if (!script.value.trim()) { flash("공유할 대본이 없습니다."); return; }
+    const url = buildShareUrl();
+    if (navigator.share) { try { await navigator.share({ title: "아나운서 대본", url }); return; } catch (_) {} }
+    try { await navigator.clipboard.writeText(url); flash("🔗 링크를 복사했습니다."); }
+    catch (_) { prompt("아래 링크를 복사하세요", url); }
+  });
+
   // ---------- 대화 모드 ----------
   const DIALOG_SAMPLES = {
     ko: "남1: 안녕하십니까. 오늘의 주요 소식입니다.\n여1: 네, 첫 번째 소식부터 전해 주시죠.\n남1: 오늘 전국이 대체로 맑았습니다.\n여1: 자세한 날씨는 잠시 후 전해 드리겠습니다.",
@@ -1076,10 +1236,36 @@
   (function load(){
     try { const s = JSON.parse(localStorage.getItem(LS) || "null"); if (s) Object.assign(state, s); } catch(_){}
   })();
+  // 공유 링크가 있으면 최우선, 없을 때만 마지막 작성 대본 복원
+  const fromLink = applyShareHash();
+  if (!fromLink) {
+    try { const last = localStorage.getItem("announcer-last"); if (last) script.value = last; } catch(_){}
+  }
   reflect();
+  applyFont();
   buildSlots();  // 저장된 언어/성별 반영해 다시 그리기
+  updateVoiceNow();
+  if (fromLink) { flash("🔗 공유된 대본을 불러왔습니다."); }
 
   // ---------- Shortcuts ----------
+  // ---------- 재생 중 문장 탭 → 그 문장부터 재생 ----------
+  overlay.addEventListener("click", (e) => {
+    if (!playing) return;
+    const spans = Array.from(overlay.querySelectorAll("span"));
+    const idx = spans.indexOf(e.target);
+    if (idx < 0 || idx >= queue.length) return;
+    if (synth) synth.cancel();
+    clearTimeout(gapTimer);
+    speakSentence(idx);
+  });
+  // 재생 중에는 오버레이가 클릭을 받도록
+  const _setTransport = setTransport;
+  setTransport = function (on) {
+    _setTransport(on);
+    overlay.style.pointerEvents = (on && state.highlight) ? "auto" : "none";
+    overlay.style.cursor = (on && state.highlight) ? "pointer" : "";
+  };
+
   document.addEventListener("keydown", (e) => {
     if (e.target === script && !(e.ctrlKey||e.metaKey)) return; // 대본 입력 방해 금지
     if ((e.ctrlKey||e.metaKey) && e.key === "Enter") { e.preventDefault(); if (!playing) start(); }
@@ -1090,25 +1276,15 @@
 })();
 </script>
 <script>
-// PWA 서비스 워커 등록 + 옛 캐시 자가 치유
-if (location.protocol.startsWith("http")) {
-  (async () => {
-    try {
-      // 옛 버전이 남긴 캐시를 즉시 제거
-      if (window.caches) {
-        const keys = await caches.keys();
-        await Promise.all(keys.filter(k => k !== "announcer-v3").map(k => caches.delete(k)));
-      }
-      if ("serviceWorker" in navigator) {
-        const reg = await navigator.serviceWorker.register("sw.js", { updateViaCache: "none" });
-        reg.update();
-        let refreshed = false;
-        navigator.serviceWorker.addEventListener("controllerchange", () => {
-          if (refreshed) return; refreshed = true; location.reload();
-        });
-      }
-    } catch (_) {}
-  })();
+// PWA 서비스 워커 등록 (http/https에서만 — file://에서는 조용히 건너뜀)
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+    let refreshed = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (refreshed) return; refreshed = true; location.reload();  // 새 버전 활성화 시 한 번 새로고침
+    });
+  });
 }
 </script>
 </body>
