@@ -10,6 +10,7 @@
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <style>
   :root {
+    /* ── 색상 토큰 (다크) ── */
     --bg: #12151d;
     --panel: #1c2029;
     --panel2: #262b37;
@@ -22,12 +23,46 @@
     --danger: #ff5f6b;
     --pink: #ff6f9c;
     --blue: #56b0ff;
+    --shadow: 0 6px 18px rgba(0,0,0,.34);
+    --shadow-sm: 0 2px 8px rgba(0,0,0,.24);
+    --glow: rgba(255,138,61,.35);
+    /* ── 형태·간격·모션 토큰 ── */
     --radius: 12px;
+    --radius-sm: 8px;
+    --radius-pill: 999px;
+    --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 22px;
+    --ease: cubic-bezier(.22,.61,.36,1);
+    --dur: .18s;
+    --header-bg: rgba(28,32,41,.72);
+    --bar-bg: rgba(18,21,29,.96);
   }
+  /* ── 라이트 테마 ── */
+  :root[data-theme="light"] {
+    --bg: #f5f6fa;
+    --panel: #ffffff;
+    --panel2: #eef0f6;
+    --border: #d8dce8;
+    --text: #1b1f2a;
+    --text-dim: #6b7285;
+    --accent: #ef7016;
+    --accent2: #2f6fe0;
+    --gold: #c98b00;
+    --danger: #d93a46;
+    --pink: #d94d80;
+    --blue: #2b87d6;
+    --shadow: 0 6px 18px rgba(30,40,70,.12);
+    --shadow-sm: 0 2px 8px rgba(30,40,70,.08);
+    --glow: rgba(239,112,22,.28);
+    --grad: radial-gradient(1200px 500px at 80% -10%, #e7ecf7 0%, var(--bg) 60%);
+    --header-bg: rgba(255,255,255,.82);
+    --bar-bg: rgba(245,246,250,.97);
+  }
+  :root { --grad: radial-gradient(1200px 500px at 80% -10%, #232a3a 0%, var(--bg) 60%); }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
   body {
-    background: radial-gradient(1200px 500px at 80% -10%, #232a3a 0%, var(--bg) 60%);
+    background: var(--grad);
     color: var(--text);
     font-family: "Malgun Gothic", "맑은 고딕", system-ui, -apple-system, sans-serif;
     font-size: 14px;
@@ -36,7 +71,7 @@
   header {
     padding: 14px 22px; display: flex; align-items: center; gap: 14px;
     border-bottom: 1px solid var(--border); flex-shrink: 0;
-    background: rgba(28,32,41,.6); backdrop-filter: blur(6px);
+    background: var(--header-bg); backdrop-filter: blur(6px);
   }
   header h1 { font-size: 19px; font-weight: 800; display: flex; align-items: center; gap: 10px; letter-spacing: -.3px; }
   .logo { width: 34px; height: 34px; border-radius: 9px; background: linear-gradient(135deg, var(--accent), var(--gold)); display: flex; align-items: center; justify-content: center; font-size: 19px; box-shadow: 0 4px 14px rgba(255,138,61,.35); }
@@ -46,6 +81,46 @@
   .live-badge.on { display: inline-flex; }
   .live-badge .pulse { width: 8px; height: 8px; border-radius: 50%; background: #fff; animation: pulse 1s infinite; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  /* 아이콘 버튼 */
+  .icon-btn {
+    background: var(--panel2); border: 1px solid var(--border); color: var(--text);
+    width: 38px; height: 38px; border-radius: var(--radius-sm); cursor: pointer;
+    font-size: 17px; display: flex; align-items: center; justify-content: center;
+    transition: all var(--dur) var(--ease); flex-shrink: 0;
+  }
+  .icon-btn:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .icon-btn:active { transform: scale(.94); }
+
+  /* 재생 중 파형 애니메이션 */
+  .wave { display: none; align-items: flex-end; gap: 3px; height: 22px; }
+  .wave.on { display: flex; }
+  .wave i {
+    display: block; width: 3px; border-radius: 2px; background: var(--accent);
+    animation: waveJump .9s ease-in-out infinite;
+  }
+  .wave i:nth-child(1){ height: 8px;  animation-delay: 0s; }
+  .wave i:nth-child(2){ height: 16px; animation-delay: .12s; }
+  .wave i:nth-child(3){ height: 22px; animation-delay: .24s; }
+  .wave i:nth-child(4){ height: 14px; animation-delay: .36s; }
+  .wave i:nth-child(5){ height: 9px;  animation-delay: .48s; }
+  @keyframes waveJump { 0%,100%{ transform: scaleY(.35); opacity:.65 } 50%{ transform: scaleY(1); opacity:1 } }
+
+  /* 토스트 알림 */
+  .toast {
+    position: fixed; left: 50%; bottom: 84px; transform: translate(-50%, 16px);
+    background: var(--panel); color: var(--text); border: 1px solid var(--border);
+    box-shadow: var(--shadow); border-radius: var(--radius-pill);
+    padding: 11px 20px; font-size: 13.5px; font-weight: 600;
+    opacity: 0; pointer-events: none; z-index: 100;
+    transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+    max-width: 88vw; text-align: center;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+  }
 
   main { flex: 1; display: flex; min-height: 0; }
   .left { flex: 1; display: flex; flex-direction: column; min-width: 0; padding: 16px 18px; gap: 13px; }
@@ -192,7 +267,7 @@
     /* 재생바를 화면 하단에 항상 고정 */
     .transport {
       position: sticky; bottom: 0; z-index: 18;
-      background: rgba(18,21,29,.96); backdrop-filter: blur(8px);
+      background: var(--bar-bg); backdrop-filter: blur(8px);
       margin: 0 -14px; padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
       border-top: 1px solid var(--border);
     }
@@ -210,8 +285,11 @@
   <h1><span class="logo">🎙️</span> 아나운서</h1>
   <span class="sub">대본을 아나운서 목소리로 읽어드립니다</span>
   <span class="spacer"></span>
+  <div class="wave" id="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
   <span class="live-badge" id="liveBadge"><span class="pulse"></span> ON AIR</span>
+  <button class="icon-btn" id="themeBtn" title="라이트/다크 전환">🌙</button>
 </header>
+<div class="toast" id="toast"></div>
 
 <main>
   <section class="left">
@@ -467,7 +545,7 @@
     chime: false, highlight: true,
     normalize: true, digitByDigit: false, dict: "",
     dialogue: false, bgmOn: false, bgmVolume: 0.2,
-    fontIdx: 1,
+    fontIdx: 1, theme: "dark",
   };
 
   // ---------- 낭독 스타일 프리셋 (rate/pitch/gap/chime 묶음) ----------
@@ -751,6 +829,7 @@
     playing = on;
     $("playBtn").disabled = on; $("pauseBtn").disabled = !on; $("stopBtn").disabled = !on;
     liveBadge.classList.toggle("on", on);
+    $("wave").classList.toggle("on", on);
     script.classList.toggle("reading", on && state.highlight);
     overlay.classList.toggle("on", on && state.highlight);
   }
@@ -828,7 +907,7 @@
     if (typeof onPlaybackFinished === "function") onPlaybackFinished();
   }
   function stop() { if (synth) synth.cancel(); clearTimeout(gapTimer); setTransport(false); cursor = -1; updateMeta(); bar.style.width = "0%"; if (typeof stopBgm === "function") stopBgm(); if (typeof stopRecording === "function") stopRecording(); }
-  function flash(m){ meta.textContent = m; setTimeout(updateMeta, 1600); }
+  function flash(m){ meta.textContent = m; setTimeout(updateMeta, 1600); if (typeof toast === "function") toast(m); }
 
   $("playBtn").addEventListener("click", start);
   $("stopBtn").addEventListener("click", stop);
@@ -1026,6 +1105,29 @@
   }
   $("srtBtn").addEventListener("click", () => { if (cuesReady) downloadText(`announcer_${state.lang}.srt`, buildSubs(false)); });
   $("vttBtn").addEventListener("click", () => { if (cuesReady) downloadText(`announcer_${state.lang}.vtt`, buildSubs(true), "text/vtt;charset=utf-8"); });
+
+  // ---------- 테마 (라이트/다크) ----------
+  function applyTheme() {
+    const light = state.theme === "light";
+    document.documentElement.setAttribute("data-theme", light ? "light" : "dark");
+    $("themeBtn").textContent = light ? "☀️" : "🌙";
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", light ? "#f5f6fa" : "#12151d");
+  }
+  $("themeBtn").addEventListener("click", () => {
+    state.theme = state.theme === "light" ? "dark" : "light";
+    applyTheme(); save();
+    toast(state.theme === "light" ? "☀️ 라이트 모드" : "🌙 다크 모드");
+  });
+
+  // ---------- 토스트 알림 ----------
+  let toastTimer = null;
+  function toast(msg) {
+    const el = $("toast");
+    el.textContent = msg; el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove("show"), 1900);
+  }
 
   // ---------- 현재 선택 요약(접이식 헤더) ----------
   function updateVoiceNow() {
@@ -1242,6 +1344,7 @@
     try { const last = localStorage.getItem("announcer-last"); if (last) script.value = last; } catch(_){}
   }
   reflect();
+  applyTheme();
   applyFont();
   buildSlots();  // 저장된 언어/성별 반영해 다시 그리기
   updateVoiceNow();
