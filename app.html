@@ -2,7 +2,10 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="아나운서">
 <title>아나운서 — 대본을 아나운서 목소리로 읽어주는 앱</title>
 <meta name="theme-color" content="#12151d">
 <link rel="manifest" href="manifest.webmanifest">
@@ -291,6 +294,18 @@
   .lib-item .del:hover { color: var(--danger); }
   .lib-empty { color: var(--text-dim); font-size: 12.5px; text-align: center; padding: 14px; }
 
+  /* 빠른 시작(빈 대본일 때만) */
+  .quickstart { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+  .quickstart.hide { display: none; }
+
+  /* 목소리·설정 프리셋 */
+  .preset-list { display: flex; gap: 6px; flex-wrap: wrap; }
+  .preset-chip { display: inline-flex; align-items: center; background: var(--panel2); border: 1px solid var(--border); border-radius: var(--radius-pill); font-size: 12px; overflow: hidden; }
+  .preset-chip .pn { cursor: pointer; font-weight: 600; padding: 7px 4px 7px 12px; }
+  .preset-chip .pn:hover { color: var(--accent); }
+  .preset-chip .px { cursor: pointer; color: var(--text-dim); padding: 7px 10px 7px 6px; }
+  .preset-chip .px:hover { color: var(--danger); }
+
   /* Script */
   .script-wrap { flex: 1; position: relative; min-height: 120px; }
   #script, #overlay { position: absolute; inset: 0; width: 100%; height: 100%; padding: 18px 20px; font-size: 18px; line-height: 1.8; font-family: inherit; border-radius: var(--radius); border: 1px solid var(--border); white-space: pre-wrap; word-break: break-word; overflow-y: auto; }
@@ -408,7 +423,7 @@
     .ann-groups { grid-template-columns: 1fr; }
     .script-wrap { flex: none; height: 38vh; min-height: 200px; }
     /* 헤더 2줄 깨짐 방지 */
-    header { padding: 10px 14px; gap: 9px; }
+    header { padding: calc(10px + env(safe-area-inset-top)) 14px 10px; gap: 9px; }
     header h1 { font-size: 16px; white-space: nowrap; }
     header .sub { display: none; }
     .logo { width: 28px; height: 28px; font-size: 16px; }
@@ -505,6 +520,14 @@
       <textarea id="script" aria-label="대본 입력" placeholder="여기에 대본을 붙여넣거나 입력하세요."></textarea>
     </div>
 
+    <div class="quickstart" id="quickstart">
+      <span class="mini">✨ 예시로 바로 시작 →</span>
+      <button class="chip" data-qs="news">📺 뉴스</button>
+      <button class="chip" data-qs="greeting">👋 인사</button>
+      <button class="chip" data-qs="dialog">🗣 대화</button>
+      <button class="chip" data-qs="numbers">🔢 숫자</button>
+    </div>
+
     <div class="transport">
       <button class="act play" id="playBtn">▶ 방송 시작</button>
       <button class="act" id="pauseBtn" disabled>⏸ 일시정지</button>
@@ -538,6 +561,8 @@
         <button data-k="bright">✨ 발랄하게</button>
         <button data-k="notice">📢 안내 방송</button>
       </div>
+      <button class="chip" id="presetSave" style="align-self:flex-start">💾 현재 목소리+설정을 프리셋으로</button>
+      <div class="preset-list" id="presetList"></div>
     </div>
     </details>
 
@@ -725,6 +750,7 @@
     if (/natural|neural/.test(n)) s += 100;
     if (/online/.test(n)) s += 40;
     if (/google/.test(n)) s += 60;
+    if (v.localService === false) s += 50;   // 네트워크(신경망) 음성 우선 — 로컬보다 대체로 자연스러움
     return s;
   }
   function isPremium(v) { return qualityRank(v) >= 60; }
@@ -1434,6 +1460,62 @@
     el.textContent = `· ${text.length}자 · 약 ${m > 0 ? m + "분 " : ""}${ss}초`;
   }
 
+  // ---------- 빠른 시작 (빈 대본일 때) ----------
+  function updateQuickstart() {
+    const q = $("quickstart"); if (!q) return;
+    q.classList.toggle("hide", !!script.value.trim());
+  }
+  $("quickstart").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    const k = b.dataset.qs;
+    if (k === "dialog") {
+      script.value = DIALOG_SAMPLES[state.lang] || DIALOG_SAMPLES.ko;
+      state.dialogue = true; $("dialogChk").checked = true; save();
+    } else {
+      const set = SAMPLES[state.lang] || SAMPLES.ko;
+      script.value = set[k] || set.news;
+    }
+    stop(); updateQuickstart(); updateEstimate(); script.focus();
+  });
+  document.addEventListener("click", () => setTimeout(updateQuickstart, 60));
+
+  // ---------- 목소리·설정 프리셋 ----------
+  const PRESET_KEY = "announcer-voice-presets";
+  function loadVPresets() { try { return JSON.parse(localStorage.getItem(PRESET_KEY) || "[]"); } catch (_) { return []; } }
+  function saveVPresets(l) { try { localStorage.setItem(PRESET_KEY, JSON.stringify(l.slice(0, 12))); } catch (_) {} }
+  function renderVPresets() {
+    const box = $("presetList"); if (!box) return;
+    const list = loadVPresets();
+    box.innerHTML = "";
+    list.forEach((pr, i) => {
+      const chip = document.createElement("div"); chip.className = "preset-chip";
+      const pn = document.createElement("span"); pn.className = "pn"; pn.textContent = pr.name; pn.title = "이 프리셋 적용";
+      pn.addEventListener("click", () => {
+        Object.assign(state, { lang: pr.lang, gender: pr.gender, slotIndex: pr.slotIndex, style: pr.style,
+          rate: pr.rate, pitch: pr.pitch, gap: pr.gap, natural: pr.natural });
+        document.querySelectorAll(".lang").forEach(x => x.classList.toggle("active", x.dataset.code === state.lang));
+        document.querySelectorAll("#styles button").forEach(x => x.classList.toggle("active", x.dataset.k === state.style));
+        reflect(); buildSlots(); updateVoiceNow(); save();
+        toast("🎚 프리셋 적용: " + pr.name);
+      });
+      const px = document.createElement("span"); px.className = "px"; px.textContent = "✕"; px.title = "프리셋 삭제";
+      px.setAttribute("role","button"); px.setAttribute("aria-label", pr.name + " 프리셋 삭제");
+      px.addEventListener("click", () => { const l = loadVPresets(); l.splice(i, 1); saveVPresets(l); renderVPresets(); });
+      chip.appendChild(pn); chip.appendChild(px); box.appendChild(chip);
+    });
+  }
+  $("presetSave").addEventListener("click", () => {
+    const L = LANGS.find(x => x.code === state.lang);
+    const styleBtn = document.querySelector("#styles button[data-k=" + state.style + "]");
+    const styleName = styleBtn ? styleBtn.textContent.replace(/^[^ ]+ /, "") : state.style;
+    const name = `${L ? L.flag : ""} ${state.gender === "F" ? "여" : "남"}${state.slotIndex + 1} · ${styleName} · ${state.rate.toFixed(2)}×`;
+    const list = loadVPresets().filter(x => x.name !== name);
+    list.unshift({ name, lang: state.lang, gender: state.gender, slotIndex: state.slotIndex,
+      style: state.style, rate: state.rate, pitch: state.pitch, gap: state.gap, natural: state.natural });
+    saveVPresets(list); renderVPresets();
+    toast("💾 프리셋 저장: " + name);
+  });
+
   // ---------- 온보딩 ----------
   const ONB = [
     { icon:"🎙️", title:"아나운서에 오신 걸 환영합니다", body:"대본을 입력하면 <b>아나운서 목소리</b>로 읽어드립니다.<br>8개 언어, 남녀 6명의 목소리를 고를 수 있어요." },
@@ -1558,6 +1640,7 @@
     clearTimeout(autosaveTimer);
     autosaveTimer = setTimeout(() => { try { localStorage.setItem("announcer-last", script.value); } catch (_) {} }, 800);
     updateEstimate();
+    updateQuickstart();
   });
 
   // ---------- 글자 크기 ----------
@@ -1739,6 +1822,8 @@
   updateVoiceNow();
   if (fromLink) { flash("🔗 공유된 대본을 불러왔습니다."); }
   updateEstimate();
+  updateQuickstart();
+  renderVPresets();
   if (!state.onboarded && !fromLink) setTimeout(openOnb, 600);
 
   // ---------- Shortcuts ----------
