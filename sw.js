@@ -1,7 +1,7 @@
 // 아나운서 서비스 워커 v3 — 강제 갱신판
 // 이전 버전이 옛 화면을 캐시에 붙잡고 있던 문제를 해결하기 위해,
 // 설치 즉시 모든 옛 캐시를 삭제하고, HTML/JS는 항상 네트워크에서 받는다.
-const CACHE = 'announcer-v3';
+const CACHE = 'announcer-v4';
 
 self.addEventListener('install', () => {
   self.skipWaiting();   // 기다리지 않고 즉시 새 워커로 교체
