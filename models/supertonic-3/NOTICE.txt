@@ -1,0 +1,11 @@
+Supertonic 3 model weights
+Source : https://huggingface.co/supertone-oss-archive/supertonic-3
+Revision: aafc6e32416a594460b32413efc49d7fe4ce6d46
+License : OpenRAIL-M (Supertone Inc.) — see LICENSE in this directory
+
+Modifications made when mirroring:
+  - onnxruntime quantize_dynamic QInt8 (int8 변형)
+
+OpenRAIL-M use restrictions apply. In particular the model must not be used to
+impersonate a person without their consent, or to generate content presented as
+human-made without disclosure. See the LICENSE file for the full list.
