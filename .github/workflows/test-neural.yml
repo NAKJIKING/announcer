@@ -1,10 +1,10 @@
 name: test-neural
 # 실제 Supertonic 3 가중치로 브라우저(헤드리스 Chromium, wasm) 합성을 검증한다.
 # 개발 컨테이너에서는 허깅페이스가 차단돼 있어 이 잡이 유일한 실가중치 검증 경로다.
+# 수동 실행 전용이다. push 마다 돌리면 가중치(models/)가 없는 평소 상태에서 매번
+# 실패해 알림 메일이 온다 — setup-ai 를 돌린 뒤 필요할 때만 실행한다.
 on:
   workflow_dispatch:
-  push:
-    paths: ["engine/**", "test/**", "models/**", ".github/workflows/test-neural.yml"]
 permissions:
   contents: read
 jobs:
@@ -20,7 +20,10 @@ jobs:
         run: bash test/setup-local.sh
       - name: Run engine test against models/supertonic-3
         run: |
-          test -f models/supertonic-3/manifest.json || { echo "models/ 가 없습니다. 먼저 setup-ai 를 실행하세요."; exit 1; }
+          if [ ! -f models/supertonic-3/manifest.json ]; then
+            echo "::warning::models/ 가 없습니다. 먼저 setup-ai 워크플로를 실행하세요. 이번 실행은 건너뜁니다."
+            exit 0
+          fi
           node test/engine.spec.js . --base models/supertonic-3/ --real --out test-out
           node test/app-neural.spec.js .
       - uses: actions/upload-artifact@v4
