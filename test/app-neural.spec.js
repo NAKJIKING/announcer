@@ -9,6 +9,7 @@ const ROOT = process.argv[2] ? require("path").resolve(process.argv[2]) : proces
 const MIME = { ".html":"text/html; charset=utf-8", ".js":"text/javascript", ".mjs":"text/javascript",
   ".wasm":"application/wasm", ".json":"application/json", ".onnx":"application/octet-stream", ".css":"text/css" };
 const BLOCK_MODELS = process.argv.includes("--no-models");
+const REAL_ASSETS = process.argv.includes("--real");
 const srv = http.createServer((req,res)=>{
   let u = decodeURIComponent(req.url.split("?")[0]); if (u.endsWith("/")) u += "아나운서.html";
   if (BLOCK_MODELS && u.includes("/models/")) { res.writeHead(404); return res.end(); }
@@ -22,7 +23,7 @@ const out=[], ck=(n,ok,d)=>out.push({n,ok:!!ok,d:d===undefined?"":String(d)});
   await new Promise(r=>srv.listen(0,"127.0.0.1",r));
   const base=`http://127.0.0.1:${srv.address().port}/`;
   const b=await chromium.launch();
-  const ctx=await b.newContext({viewport:{width:1280,height:900}});
+  const ctx=await b.newContext({viewport:{width:1280,height:900}, acceptDownloads:true});
   await ctx.addInitScript(()=>{
     const voices=[{name:"Local Basic",lang:"ko-KR",voiceURI:"v1",localService:true,default:true},
                   {name:"Cloud Natural",lang:"ko-KR",voiceURI:"v2",localService:false},
@@ -34,7 +35,10 @@ const out=[], ck=(n,ok,d)=>out.push({n,ok:!!ok,d:d===undefined?"":String(d)});
     window.SpeechSynthesisUtterance=function(t){this.text=t;this.rate=1;this.pitch=1;this.volume=1;};
   });
   const p=await ctx.newPage();
-  const errs=[]; p.on("pageerror",e=>errs.push("PAGEERR "+e.message));
+  const errs=[]; const dialogs=[];
+  // 실가중치 배포본은 100MB 가 넘어 'AI 음성' 을 켤 때 용량 확인 창이 뜬다 — 받아들인다.
+  p.on("dialog", async d => { dialogs.push(d.message()); await d.accept(); });
+  p.on("pageerror",e=>errs.push("PAGEERR "+e.message));
   p.on("console",m=>{
     const t=m.text();
     if(m.type()!=="error") return;
@@ -69,9 +73,10 @@ const out=[], ck=(n,ok,d)=>out.push({n,ok:!!ok,d:d===undefined?"":String(d)});
 
   await p.click("#aiBtn");
   await p.waitForFunction(()=>document.getElementById("engineBadge").textContent.includes("ai") ||
-                              document.getElementById("voiceBanner").classList.contains("show"), null, {timeout:120000});
+                              document.getElementById("voiceBanner").classList.contains("show"), null, {timeout: REAL_ASSETS ? 600000 : 120000});
   const badge = await p.textContent("#engineBadge");
   ck("AI 음성 켜짐", badge.includes("ai"), badge);
+  if (REAL_ASSETS) ck("100MB 넘으면 용량 확인", dialogs.some(m => /MB/.test(m)), (dialogs[0]||"(없음)").slice(0,60));
   const variantUsed = await p.evaluate(()=>{ try { return Supertonic && window.__eng ? null : null; } catch(e){ return null; } });
   ck("매니페스트 변형 경로 해석", await p.evaluate(async ()=>{
     // 엔진이 variants 맵에서 네 모델 경로를 모두 뽑아내는지 직접 확인한다
@@ -100,7 +105,7 @@ const out=[], ck=(n,ok,d)=>out.push({n,ok:!!ok,d:d===undefined?"":String(d)});
   await p.evaluate(()=>{ window.__spoken.length=0; });
   await p.click("#playBtn");
   await p.waitForFunction(()=>!document.getElementById("playBtn").disabled &&
-                              document.getElementById("bar").style.width==="100%", null, {timeout:180000});
+                              document.getElementById("bar").style.width==="100%", null, {timeout: REAL_ASSETS ? 900000 : 180000});
   ck("AI 낭독 완주", (await p.evaluate(()=>document.getElementById("bar").style.width))==="100%");
   ck("낭독 후 트랜스포트 복귀", !(await p.evaluate(()=>document.getElementById("playBtn").disabled)));
   ck("AI 경로는 speechSynthesis 미사용", (await p.evaluate(()=>window.__spoken.length))===0,
@@ -109,7 +114,7 @@ const out=[], ck=(n,ok,d)=>out.push({n,ok:!!ok,d:d===undefined?"":String(d)});
   await p.click("#modeLong"); await p.waitForTimeout(300);
   ck("긴 글 조각 수 표시", +(await p.textContent("#lfCount"))>0, await p.textContent("#lfCount"));
   await p.click("#lfStart");
-  await p.waitForFunction(()=>!document.getElementById("lfSave").disabled, null, {timeout:180000});
+  await p.waitForFunction(()=>!document.getElementById("lfSave").disabled, null, {timeout: REAL_ASSETS ? 900000 : 180000});
   ck("긴 글 합성 완료·저장 가능", !(await p.evaluate(()=>document.getElementById("lfSave").disabled)));
   ck("긴 글 완료 조각 수", +(await p.textContent("#lfDone"))>0, await p.textContent("#lfDone"));
   // 긴 글: 일시정지 → 이어듣기 → 정지 후 다시 시작 가능해야 한다 (프라미스 교착 회귀 방지)
@@ -119,7 +124,7 @@ const out=[], ck=(n,ok,d)=>out.push({n,ok:!!ok,d:d===undefined?"":String(d)});
   ck("긴 글 일시정지 표시", (await p.textContent("#lfPause")).includes("이어듣기"), await p.textContent("#lfPause"));
   await p.click("#lfPause"); await p.waitForTimeout(500);
   await p.click("#lfStop");
-  await p.waitForFunction(()=>!document.getElementById("lfStart").disabled, null, {timeout:60000});
+  await p.waitForFunction(()=>!document.getElementById("lfStart").disabled, null, {timeout: REAL_ASSETS ? 300000 : 60000});
   ck("긴 글 정지 후 다시 시작 가능", !(await p.evaluate(()=>document.getElementById("lfStart").disabled)));
   ck("긴 글 정지 후 ON AIR 꺼짐", !(await p.evaluate(()=>document.body.classList.contains("playing"))));
 
@@ -127,8 +132,28 @@ const out=[], ck=(n,ok,d)=>out.push({n,ok:!!ok,d:d===undefined?"":String(d)});
   await p.click("#modeWord"); await p.waitForTimeout(200);
   await p.fill("#wordInput","사과");
   await p.click("#wordPlay");
-  await p.waitForFunction(()=>!document.getElementById("wordSave").disabled, null, {timeout:120000});
+  await p.waitForFunction(()=>!document.getElementById("wordSave").disabled, null, {timeout: REAL_ASSETS ? 600000 : 120000});
   ck("단어 WAV 저장 가능(AI)", !(await p.evaluate(()=>document.getElementById("wordSave").disabled)));
+
+  // 라우드니스 정규화 — 저장된 WAV 의 피크가 목표(-3dBFS≈0.71) 근처여야 한다.
+  // Supertonic 원본은 피크 -14dBFS 근처라 정규화가 없으면 0.2 언저리로 나온다.
+  {
+    const dl = p.waitForEvent("download", { timeout: 30000 }).catch(() => null);
+    await p.click("#wordSave");
+    const d = await dl;
+    if (!d) ck("WAV 레벨 정규화", false, "다운로드 이벤트 없음");
+    else {
+      const tmp = require("os").tmpdir() + "/announcer-word-test.wav";
+      await d.saveAs(tmp);
+      const buf = fs.readFileSync(tmp);
+      const n = buf.readUInt32LE(40) / 2;
+      let peak = 0;
+      for (let i = 0; i < n; i++) { const v = Math.abs(buf.readInt16LE(44 + i * 2)) / 32768; if (v > peak) peak = v; }
+      ck("WAV 레벨 정규화", peak > 0.5 && peak <= 1.0, "peak " + peak.toFixed(3));
+      ck("WAV 클리핑 없음", peak < 0.999, "peak " + peak.toFixed(3));
+      fs.unlinkSync(tmp);
+    }
+  }
   // 단어 3번 반복 도중 모드를 바꾸면 더 읽지 않아야 한다
   await p.click("#modeWord"); await p.waitForTimeout(200);
   await p.fill("#wordInput","반복테스트");

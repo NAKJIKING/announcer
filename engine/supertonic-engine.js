@@ -273,7 +273,12 @@
         if (navigator.gpu) { try { gpuOK = !!(await navigator.gpu.requestAdapter()); } catch (e) {} }
         v = gpuOK ? 'fp32' : 'int8';
       }
-      if (!(m.variants && m.variants[v])) v = (m.variants && m.variants.fp32) ? 'fp32' : 'default';
+      // 요청한 변형이 배포본에 없으면(예: int8 만 미러된 상태에서 WebGPU→fp32 요청)
+      // 있는 것 아무거나로 떨어진다. 없는 파일을 요청해 404 로 죽는 것보다 낫다.
+      if (!(m.variants && m.variants[v])) {
+        const avail = m.variants ? Object.keys(m.variants) : [];
+        v = avail.includes('fp32') ? 'fp32' : (avail[0] || 'default');
+      }
       this._variant = v;
       return v;
     }
@@ -400,8 +405,13 @@
           const abs = new URL(this.ortBase, location.href).href;
           ort.env.wasm.wasmPaths = abs.endsWith('/') ? abs : abs + '/';
         }
-        ort.env.wasm.numThreads = (global.crossOriginIsolated && navigator.hardwareConcurrency) ? Math.min(4, navigator.hardwareConcurrency) : 1;
-        // proxy 워커: CPU(wasm) 경로에서 UI 를 멈추지 않게 한다. WebGPU 는 워커 모드를 지원하지 않으므로 그때는 끈다.
+        /* 멀티스레드는 crossOriginIsolated 일 때만 열린다. GitHub Pages 는 COOP/COEP 헤더를
+           보낼 수 없고, 서비스 워커로 주입하는 우회도 통하지 않는다(ORT 가 런타임을 blob: 워커에서
+           불러와 서비스 워커가 못 가로챈다). 헤더를 보낼 수 있는 호스팅이면 자동으로 스레드가 켜진다.
+           실측(4코어): 1스레드 RTF 7.8 → 4스레드 RTF 2.3, 약 3.4배. */
+        const isolated = !!global.crossOriginIsolated;
+        ort.env.wasm.numThreads = (isolated && navigator.hardwareConcurrency) ? Math.min(4, navigator.hardwareConcurrency) : 1;
+        // proxy 워커: CPU 경로에서 UI 를 멈추지 않게 한다. WebGPU 는 워커 모드를 지원하지 않는다.
         ort.env.wasm.proxy = (proxy !== undefined) ? !!proxy : order[0] === 'wasm';
         ort.env.logLevel = 'warning';
         global.__announcerOrtInit = { proxy: ort.env.wasm.proxy, order };

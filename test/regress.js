@@ -230,6 +230,47 @@ const ck = (name, cond, detail="") => (cond ? pass : fail).push(name + (detail ?
   ck("선택 안 된 탭은 tabindex -1", await p.evaluate(()=>document.getElementById("modeLong").tabIndex === -1));
   await p.click("#modeScript"); await p.waitForTimeout(150);
 
+
+  // [남은 감사 항목 회귀 방지]
+  ck("본문이 100vh 로 잘리지 않음", await p.evaluate(()=>{
+    const cs = getComputedStyle(document.body);
+    return cs.minHeight !== "" && cs.overflowY !== "hidden";
+  }), await p.evaluate(()=>getComputedStyle(document.body).overflowY));
+  ck("비활성 버튼이 opacity 로 흐려지지 않음", await p.evaluate(()=>{
+    const b = document.querySelector("button.act:disabled"); if (!b) return true;
+    return parseFloat(getComputedStyle(b).opacity) > 0.8;
+  }));
+  ck("랜드마크 이름 있음", await p.evaluate(()=>
+    !!document.querySelector('section[aria-label]') && !!document.querySelector('aside[aria-label]')));
+  ck("낭독 스타일 radiogroup", await p.evaluate(()=>{
+    const g = document.getElementById("styles");
+    return g.getAttribute("role") === "radiogroup" && g.querySelector('[aria-checked="true"]') !== null;
+  }));
+  ck("속도 프리셋 radiogroup", await p.evaluate(()=>{
+    const g = document.getElementById("speedPresets");
+    return g.getAttribute("role") === "radiogroup" && g.querySelector('[aria-checked="true"]') !== null;
+  }));
+  ck("선택 안 된 라디오는 tabindex -1", await p.evaluate(()=>{
+    const off = document.querySelectorAll('#styles button[aria-checked="false"]');
+    return off.length > 0 && Array.from(off).every(b => b.tabIndex === -1);
+  }));
+  // 온보딩: Escape 로 닫히고 포커스가 갇혀야 한다
+  await p.evaluate(()=>{ localStorage.removeItem("announcer-v2"); });
+  await p.reload(); await p.waitForTimeout(900);
+  ck("온보딩 다시 표시", await p.evaluate(()=>document.getElementById("onb").classList.contains("show")));
+  ck("온보딩 포커스가 안으로", await p.evaluate(()=>document.getElementById("onb").contains(document.activeElement)));
+  await p.keyboard.press("Escape"); await p.waitForTimeout(300);
+  ck("온보딩 Escape 로 닫힘", await p.evaluate(()=>!document.getElementById("onb").classList.contains("show")));
+  ck("이모지가 라벨에 남아있지 않음", await p.evaluate(()=>{
+    const re = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u;
+    const bad = [];
+    document.querySelectorAll("button, summary, .section-label, h1, h2, h3").forEach(el=>{
+      const own = Array.from(el.childNodes).filter(n=>n.nodeType===3).map(n=>n.textContent).join("");
+      if (re.test(own)) bad.push(el.id || el.className || own.trim().slice(0,12));
+    });
+    window.__emojiBad = bad; return bad.length === 0;
+  }), (await p.evaluate(()=>JSON.stringify(window.__emojiBad||[]))).slice(0,120));
+
   console.log("PASS " + pass.length + " / FAIL " + fail.length);
   if (fail.length) { console.log("\n❌ 실패:"); fail.forEach(f=>console.log("  - "+f)); }
   console.log("\nerrors:", errs.length ? errs : "none");
