@@ -1,0 +1,28 @@
+name: test-neural
+# 실제 Supertonic 3 가중치로 브라우저(헤드리스 Chromium, wasm) 합성을 검증한다.
+# 개발 컨테이너에서는 허깅페이스가 차단돼 있어 이 잡이 유일한 실가중치 검증 경로다.
+on:
+  workflow_dispatch:
+  push:
+    paths: ["engine/**", "test/**", "models/**", ".github/workflows/test-neural.yml"]
+permissions:
+  contents: read
+jobs:
+  synth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - run: npm i --no-save playwright@1 && npx playwright install --with-deps chromium
+      - name: 런타임 준비
+        run: bash test/setup-local.sh
+      - name: Run engine test against models/supertonic-3
+        run: |
+          test -f models/supertonic-3/manifest.json || { echo "models/ 가 없습니다. 먼저 setup-ai 를 실행하세요."; exit 1; }
+          node test/engine.spec.js . --base models/supertonic-3/ --real --out test-out
+          node test/app-neural.spec.js .
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: neural-test-output, path: test-out, retention-days: 7 }

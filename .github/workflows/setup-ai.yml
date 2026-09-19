@@ -1,0 +1,66 @@
+name: setup-ai
+# AI 음성에 필요한 큰 파일들을 배포 저장소에 채운다 (수동 실행).
+#  1) onnxruntime-web 런타임 → vendor/ort/
+#  2) Supertonic 3 가중치(int8) → models/supertonic-3/
+# 둘 다 저장소에 커밋되지 않은 상태에서는 앱이 'AI 음성을 켤 수 없습니다' 배너를 띄우고
+# 기기 음성으로 계속 동작한다 (기능이 죽지는 않는다).
+on:
+  workflow_dispatch:
+    inputs:
+      runtime:
+        description: "onnxruntime-web 런타임 내려받기"
+        type: boolean
+        default: true
+      models:
+        description: "Supertonic 3 가중치 미러링"
+        type: boolean
+        default: true
+      webgpu:
+        description: "WebGPU 런타임(jsep, +28MB)도 포함"
+        type: boolean
+        default: false
+permissions:
+  contents: write
+concurrency: setup-ai
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+
+      - name: onnxruntime-web 런타임
+        if: ${{ inputs.runtime }}
+        run: |
+          set -euo pipefail
+          tmp=$(mktemp -d)
+          (cd "$tmp" && npm pack onnxruntime-web@1.30.0 >/dev/null && tar xzf onnxruntime-web-*.tgz)
+          mkdir -p vendor/ort
+          cp "$tmp/package/dist/ort.webgpu.min.js" vendor/ort/
+          cp "$tmp/package/dist/ort-wasm-simd-threaded.asyncify.mjs"  vendor/ort/
+          cp "$tmp/package/dist/ort-wasm-simd-threaded.asyncify.wasm" vendor/ort/
+          if [ "${{ inputs.webgpu }}" = "true" ]; then
+            cp "$tmp/package/dist/ort-wasm-simd-threaded.jsep.mjs"  vendor/ort/
+            cp "$tmp/package/dist/ort-wasm-simd-threaded.jsep.wasm" vendor/ort/
+          fi
+          cp "$tmp/package/LICENSE" vendor/ort/LICENSE 2>/dev/null || true
+          du -sh vendor/ort && ls -la vendor/ort
+
+      - name: Supertonic 3 가중치 (int8)
+        if: ${{ inputs.models }}
+        run: |
+          pip install --quiet "huggingface_hub>=0.25" onnx onnxruntime numpy
+          python tools/mirror_models.py --out models/supertonic-3
+          du -sh models/supertonic-3
+
+      - name: 커밋
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A vendor models 2>/dev/null || true
+          git commit -m "AI 음성 자산 준비 (onnxruntime-web + Supertonic 3 int8)" || echo "변경 없음"
+          git push

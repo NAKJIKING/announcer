@@ -1,7 +1,7 @@
-// 아나운서 서비스 워커 v3 — 강제 갱신판
+// 아나운서 서비스 워커 v5 — 강제 갱신판 + AI 모델 캐시 보존
 // 이전 버전이 옛 화면을 캐시에 붙잡고 있던 문제를 해결하기 위해,
 // 설치 즉시 모든 옛 캐시를 삭제하고, HTML/JS는 항상 네트워크에서 받는다.
-const CACHE = 'announcer-v4';
+const CACHE = 'announcer-v5';
 
 self.addEventListener('install', () => {
   self.skipWaiting();   // 기다리지 않고 즉시 새 워커로 교체
@@ -9,9 +9,10 @@ self.addEventListener('install', () => {
 
 self.addEventListener('activate', (e) => {
   e.waitUntil((async () => {
-    // 이름과 무관하게 이 오리진의 모든 캐시 삭제 (옛 화면 완전 제거)
+    // 옛 화면 캐시는 지우되, AI 음성 모델 캐시(announcer-models-*)는 건드리지 않는다.
+    // 여기서 같이 지우면 앱을 고쳐 배포할 때마다 사용자가 받아 둔 100MB 넘는 모델이 날아간다.
     const keys = await caches.keys();
-    await Promise.all(keys.map((k) => caches.delete(k)));
+    await Promise.all(keys.filter((k) => !k.startsWith('announcer-models-')).map((k) => caches.delete(k)));
     await self.clients.claim();
     // 열려 있는 창을 새로고침해서 즉시 새 화면으로
     const clients = await self.clients.matchAll({ type: 'window' });
@@ -21,7 +22,11 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   const req = e.request;
-  if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
+  const url = new URL(req.url);
+  if (req.method !== 'GET' || url.origin !== location.origin) return;
+
+  // AI 음성 자산은 서비스 워커가 아예 손대지 않는다 (엔진이 자체 캐시로 관리한다).
+  if (/\.(onnx|wasm)(\?|$)/i.test(url.pathname) || url.pathname.includes('/models/') || url.pathname.includes('/vendor/')) return;
 
   const isDoc = req.mode === 'navigate' || req.destination === 'document' ||
                 /\.(html|webmanifest|js)(\?|$)/.test(req.url);

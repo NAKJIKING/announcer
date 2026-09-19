@@ -1,0 +1,61 @@
+<!doctype html><meta charset="utf-8"><title>engine test</title>
+<script src="../vendor/ort/ort.webgpu.min.js"></script>
+<script src="../engine/supertonic-engine.js"></script>
+<script>
+window.__log = [];
+async function runAll(opts) {
+  const { SupertonicEngine, VoiceStyle, writeWav, chunkText } = Supertonic;
+  const out = { support: SupertonicEngine.support(), ortVersion: ort.env.versions && ort.env.versions.web };
+  const eng = new SupertonicEngine({ bases: [opts.base], ortBase: '../vendor/ort/' });
+  const prog = [];
+  await eng.install({ onProgress: p => prog.push(p) });
+  out.installEvents = prog.length; out.fromCacheEvents = prog.filter(p => p.fromCache).length;
+  out.overallTotal = prog.length ? prog[prog.length - 1].overallTotal : 0;
+  out.installed = await eng.isInstalled(); out.installedBytes = await eng.installedBytes();
+  out.cachedList = (await eng.store.list('supertonic-3')).sort();
+  const stages = [];
+  out.provider = await eng.load({ prefer: opts.prefer || 'wasm', onProgress: s => stages.push(s.stage), proxy: opts.proxy });
+  out.variantUsed = eng.variantUsed;
+  out.proxy = ort.env.wasm.proxy; out.threads = ort.env.wasm.numThreads;
+  out.stages = Array.from(new Set(stages));
+  const longKo = '안녕하십니까, 시청자 여러분. 오늘의 주요 뉴스를 전해 드리겠습니다. 첫 번째 소식입니다. 서울 지역에 올가을 첫 한파주의보가 내려졌습니다. 기상청은 내일 아침 기온이 영하로 떨어지겠다고 예보했습니다. 시민 여러분께서는 건강 관리에 유의하시기 바랍니다.';
+  out.chunks = chunkText(longKo, 120).map(c => c.length);
+  const chunkEv = [];
+  const t0 = performance.now();
+  const r1 = await eng.synthesize(longKo, { lang: 'ko', style: 'F3', steps: opts.steps || 4, seed: 42, onChunk: (pcm, i, n, m) => chunkEv.push([i, n, pcm.length, m.text.length]) });
+  out.synthMs = Math.round(performance.now() - t0);
+  out.r1 = { len: r1.pcm.length, dur: +r1.duration.toFixed(3), chunks: r1.chunks, sr: r1.sampleRate, provider: r1.provider, chunkEv };
+  let sq = 0; for (let i = 0; i < r1.pcm.length; i++) sq += r1.pcm[i] * r1.pcm[i]; out.r1.rms = +Math.sqrt(sq / r1.pcm.length).toFixed(4);
+  const r2 = await eng.synthesize(longKo, { lang: 'ko', style: 'F3', steps: opts.steps || 4, seed: 42 });
+  let same = r1.pcm.length === r2.pcm.length; if (same) for (let i = 0; i < r1.pcm.length; i += 997) if (r1.pcm[i] !== r2.pcm[i]) { same = false; break; }
+  out.deterministic = same;
+  const r3 = await eng.synthesize(longKo, { lang: 'ko', style: 'F3', steps: opts.steps || 4, seed: 7 });
+  let diff = false; for (let i = 0; i < Math.min(r1.pcm.length, r3.pcm.length); i += 997) if (r1.pcm[i] !== r3.pcm[i]) { diff = true; break; }
+  out.seedChangesOutput = diff;
+  // 혼합 목소리
+  const mixed = VoiceStyle.mix([await eng.loadStyle('M2'), await eng.loadStyle('F1')], [0.6, 0.4]);
+  const r4 = await eng.synthesize('혼합 목소리 테스트입니다.', { lang: 'ko', style: mixed, steps: 2, seed: 1 });
+  out.mixed = { len: r4.pcm.length, meta: mixed.meta, ttlDims: mixed.ttlDims, dpDims: mixed.dpDims, roundTrip: VoiceStyle.fromJSON(mixed.toJSON()).ttl[100] === mixed.ttl[100] };
+  // 영어(300자 상한) + na
+  const r5 = await eng.synthesize('Good evening. Here are tonight\'s top stories.', { lang: 'en', style: 'M1', steps: 2, seed: 1 });
+  out.en = { len: r5.pcm.length, dur: +r5.duration.toFixed(3) };
+  // 중단
+  const ac = new AbortController(); let aborted = null;
+  const p = eng.synthesize(longKo, { lang: 'ko', style: 'F3', steps: 8, signal: ac.signal, onProgress: e => { if (e.step === 2) ac.abort(); } });
+  try { await p; aborted = 'no-throw'; } catch (e) { aborted = e.name; }
+  out.aborted = aborted;
+  // WAV
+  const wav = writeWav(r5.pcm, r5.sampleRate); const dv = new DataView(wav);
+  out.wav = { bytes: wav.byteLength, riff: String.fromCharCode(dv.getUint8(0), dv.getUint8(1), dv.getUint8(2), dv.getUint8(3)), sr: dv.getUint32(24, true), dataLen: dv.getUint32(40, true), expect: r5.pcm.length * 2 };
+  { const u8 = new Uint8Array(writeWav(r1.pcm, r1.sampleRate)); let bin = ''; for (let i = 0; i < u8.length; i += 8192) bin += String.fromCharCode.apply(null, u8.subarray(i, i + 8192)); out.wavB64 = btoa(bin); }
+  // 두 번째 인스턴스: 캐시에서만 로드되는지 (네트워크 fetch 감시)
+  const fetches = []; const of = window.fetch; window.fetch = (u, o) => { fetches.push(String(u)); return of(u, o); };
+  const eng2 = new SupertonicEngine({ bases: [opts.base], ortBase: '../vendor/ort/' });
+  try { await eng2.load({ prefer: 'wasm' }); out.secondLoad = 'ok'; } catch (e) { out.secondLoad = 'ERR ' + e.message; }
+  window.fetch = of;
+  out.secondLoadFetches = fetches.filter(u => !u.endsWith('manifest.json'));
+  out.ortInit = window.__announcerOrtInit;
+  eng.dispose(); eng2.dispose();
+  return out;
+}
+</script>

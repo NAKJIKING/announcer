@@ -28,7 +28,7 @@
     --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", monospace;
     --accent: #e0813f;                 /* 리파인드 엠버 */
     --accent-tint: rgba(224,129,63,.14);
-    --on-accent: var(--on-accent);
+    --on-accent: #141210;   /* 앰버 위에 얹는 잉크 — 흰색은 대비가 2.5:1 로 모자란다 */
     --danger: #ff453a;                 /* 시그널 레드 = 온에어/녹음 전용 */
     --signal: #ff453a;
     --rec-bg: #1a0f0e; --rec-border: #3c1a17; --rec-fg: #ff6157;
@@ -441,12 +441,144 @@
     .ann { padding: 12px 6px; }
     .transport .meta { width: 100%; order: 10; }
   }
+
+  /* ── 선 아이콘 (이모지 대체) ── */
+  .ic { width: 1em; height: 1em; flex: none; stroke: currentColor; fill: none;
+        stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -0.125em; }
+  .ic-lg { width: 18px; height: 18px; }
+  .face { display: flex; align-items: center; justify-content: center; gap: 5px; }
+  .slotno { font-family: var(--mono); font-size: 10px; letter-spacing: .06em; color: var(--text-dim); }
+  .ann.active .slotno { color: var(--accent); }
+  .chip .ic, .act .ic { margin-right: 2px; }
+
+  /* ── 모드 탭 ── */
+  .modebar { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 1px;
+             background: var(--border); border: 1px solid var(--border); margin-bottom: 1px; }
+  .modebar button { background: var(--panel2); color: var(--text-mid); border: 0; padding: 10px 8px;
+    font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; display: flex; align-items: center;
+    justify-content: center; gap: 6px; transition: background var(--dur) var(--ease), color var(--dur) var(--ease); }
+  .modebar button:hover:not(.active) { background: var(--surface-3); color: var(--text); }
+  .modebar button.active { background: var(--accent-tint); color: var(--text); box-shadow: inset 0 -3px 0 var(--accent); }
+  .modebar button:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
+  .mode-pane[hidden] { display: none !important; }
+
+  /* ── 엔진 배지 ── */
+  .engine-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 14px;
+    background: var(--panel2); border: 1px solid var(--border); margin-bottom: 1px; }
+  .ebadge { font-family: var(--mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+    padding: 3px 7px; border: 1px solid var(--border-ctl); color: var(--text-dim); }
+  .ebadge.on { border-color: var(--accent); color: var(--accent); background: var(--accent-tint); }
+  .ebadge.warn { border-color: var(--rec-border); color: var(--rec-fg); background: var(--rec-bg); }
+  .dl-wrap { flex: 1 1 180px; min-width: 140px; display: none; }
+  .dl-wrap.show { display: block; }
+  .dl-track { height: 6px; background: var(--surface-3); border: 1px solid var(--border); overflow: hidden; }
+  .dl-fill { height: 100%; width: 0%; background: var(--accent); transition: width .25s var(--ease); }
+  .dl-text { font-family: var(--mono); font-size: 10px; color: var(--text-dim); margin-top: 3px;
+    display: flex; align-items: center; gap: 8px; }
+  .dl-cancel { background: none; border: 1px solid var(--border-ctl); color: var(--text-mid);
+    font: inherit; font-size: 10px; padding: 1px 6px; cursor: pointer; }
+  .dl-cancel:hover { color: var(--text); border-color: var(--accent); }
+
+  /* ── 음성 브라우저 ── */
+  .vb-tools { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+  .vb-search { flex: 1 1 140px; min-width: 120px; background: var(--surface-3); border: 1px solid var(--border-ctl);
+    color: var(--text); padding: 8px 10px; font: inherit; font-size: 12.5px; border-radius: var(--radius-sm); }
+  .vb-search:focus-visible { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .vb-list { display: flex; flex-direction: column; gap: 1px; background: var(--border);
+    border: 1px solid var(--border); max-height: 320px; overflow-y: auto; }
+  .vb-item { display: flex; align-items: center; gap: 10px; background: var(--panel2); border: 0;
+    padding: 10px 12px; text-align: left; font: inherit; color: var(--text); cursor: pointer; width: 100%;
+    transition: background var(--dur-instant) var(--ease); }
+  .vb-item:hover { background: var(--surface-3); }
+  .vb-item[aria-pressed="true"] { background: var(--accent-tint); box-shadow: inset 3px 0 0 var(--accent); }
+  .vb-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .vb-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .vb-name { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .vb-sub { font-family: var(--mono); font-size: 9.5px; letter-spacing: .06em; color: var(--text-dim);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .vb-badge { font-family: var(--mono); font-size: 9px; letter-spacing: .06em; padding: 2px 5px;
+    border: 1px solid var(--border-ctl); color: var(--text-dim); flex: none; }
+  .vb-badge.hq { border-color: var(--accent); color: var(--accent); }
+  .vb-badge.ai { border-color: var(--accent); color: var(--on-accent); background: var(--accent); }
+  .vb-play { background: var(--panel2); border: 0; border-left: 1px solid var(--border); color: var(--text-mid);
+    width: 44px; align-self: stretch; display: grid; place-items: center; cursor: pointer; }
+  .vb-play:hover { background: var(--surface-3); }
+  .vb-play:hover { color: var(--accent); border-color: var(--accent); }
+  .vb-play:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .vb-empty { padding: 18px 12px; color: var(--text-dim); font-size: 12.5px; background: var(--panel2); }
+
+  /* ── 목소리 섞기 ── */
+  .mix-row { display: flex; gap: 6px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+  .mix-row select { background: var(--surface-3); border: 1px solid var(--border-ctl); color: var(--text);
+    padding: 7px 8px; font: inherit; font-size: 12px; border-radius: var(--radius-sm); }
+  .mix-bar { flex: 1 1 120px; min-width: 100px; }
+
+  /* ── 단어 모드 ── */
+  .word-input { display: flex; gap: 6px; margin-bottom: 10px; }
+  .word-input input { flex: 1; background: var(--surface-3); border: 1px solid var(--border-ctl); color: var(--text);
+    padding: 12px 14px; font: inherit; font-size: 17px; font-weight: 700; border-radius: var(--radius-sm); }
+  .word-input input:focus-visible { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .word-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1px;
+    background: var(--border); border: 1px solid var(--border); }
+  .word-card { background: var(--panel2); border: 0; padding: 12px; display: flex; flex-direction: column;
+    gap: 6px; align-items: flex-start; cursor: pointer; font: inherit; color: var(--text); text-align: left;
+    transition: background var(--dur-instant) var(--ease); }
+  .word-card:hover { background: var(--surface-3); }
+  .word-card.speaking { background: var(--accent-tint); box-shadow: inset 0 -3px 0 var(--accent); }
+  .word-card:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .word-card .wc-name { font-size: 12.5px; font-weight: 700; }
+  .word-card .wc-sub { font-family: var(--mono); font-size: 9px; letter-spacing: .06em; color: var(--text-dim); }
+  .word-hist { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+  .word-hist button { background: var(--surface-3); border: 1px solid var(--border); color: var(--text-mid);
+    padding: 5px 9px; font: inherit; font-size: 12px; cursor: pointer; border-radius: var(--radius-sm); }
+  .word-hist button:hover { color: var(--text); border-color: var(--border-ctl); }
+
+  /* ── 긴 글 모드 ── */
+  .lf-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 1px;
+    background: var(--border); border: 1px solid var(--border); margin-bottom: 10px; }
+  .lf-stat { background: var(--panel2); padding: 10px 12px; display: flex; flex-direction: column; gap: 3px; }
+  .lf-stat .k { font-family: var(--mono); font-size: 9px; letter-spacing: .1em; color: var(--text-dim); text-transform: uppercase; }
+  .lf-stat .v { font-family: var(--mono); font-size: 15px; font-weight: 700; color: var(--text); }
+  .lf-chunks { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 10px; }
+  .lf-chunk { width: 14px; height: 14px; background: var(--surface-3); border: 1px solid var(--border); }
+  .lf-chunk.done { background: var(--accent); border-color: var(--accent); }
+  .lf-chunk.cur { background: var(--accent-tint); border-color: var(--accent);
+    animation: lfpulse 1s var(--ease) infinite; }
+  @keyframes lfpulse { 0%,100% { opacity: 1 } 50% { opacity: .45 } }
+
+  /* ── VU 미터 ── */
+  .vu { display: flex; gap: 2px; align-items: flex-end; height: 22px; }
+  .vu i { width: 3px; background: var(--border-ctl); height: 20%; transition: height .08s linear, background .08s linear; }
+  .vu i.lit { background: var(--accent); }
+  .vu i.peak { background: var(--signal); }
+
+  /* ── ON AIR ── */
+  .onair { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 10px;
+    letter-spacing: .14em; padding: 4px 8px; border: 1px solid var(--border-ctl); color: var(--text-dim); }
+  .onair .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border-ctl); }
+  body.playing .onair { border-color: var(--accent); color: var(--accent); }
+  body.playing .onair .dot { background: var(--accent); animation: airpulse 1.4s var(--ease) infinite; }
+  body.recording .onair { border-color: var(--signal); color: var(--rec-fg); background: var(--rec-bg); }
+  body.recording .onair .dot { background: var(--signal); animation: airpulse .7s var(--ease) infinite; }
+  @keyframes airpulse { 0%,100% { opacity: 1; transform: scale(1) } 50% { opacity: .35; transform: scale(.8) } }
+
+  /* ── 눌림 피드백 ── */
+  .act:active:not(:disabled), .chip:active:not(:disabled) { transform: translateY(1px); }
+  .act, .chip { transition: background var(--dur) var(--ease), color var(--dur) var(--ease),
+                            border-color var(--dur) var(--ease), transform var(--dur-instant) var(--ease); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important;
+                             transition-duration: .001ms !important; }
+    .lf-chunk.cur, .onair .dot { animation: none !important; }
+  }
+
 </style>
 </head>
 <body>
-<a href="#script" class="skip-link">대본 입력으로 건너뛰기</a>
+<a href="#script" class="skip-link" id="skipLink">대본 입력으로 건너뛰기</a>
 <header>
-  <h1><span class="logo">🎙️</span> 아나운서</h1>
+  <h1><span class="logo"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg> </span> 아나운서</h1>
   <span class="sub">대본을 아나운서 목소리로 읽어드립니다</span>
   <span class="spacer"></span>
   <div class="wave" id="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
@@ -471,48 +603,103 @@
   <section class="left">
     <div class="banner" id="voiceBanner" role="alert"></div>
 
+    <div class="modebar" role="tablist" aria-label="작업 모드">
+      <button role="tab" id="modeScript" data-mode="script" class="active" aria-selected="true" aria-controls="paneScript">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 10h16M4 15h10"/></svg>대본
+      </button>
+      <button role="tab" id="modeWord" data-mode="word" aria-selected="false" aria-controls="paneWord">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M9 7v11M12 4v3"/></svg>단어
+      </button>
+      <button role="tab" id="modeLong" data-mode="long" aria-selected="false" aria-controls="paneLong">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 11h16M4 16h16M4 21h9"/></svg>긴 글
+      </button>
+    </div>
+
+    <div class="engine-row">
+      <span class="ebadge on" id="engineBadge" title="지금 소리를 만드는 엔진">system voice</span>
+      <span class="onair" id="onAir"><span class="dot"></span>ON AIR</span>
+      <div class="vu" id="vuMeter" aria-hidden="true"></div>
+      <div style="flex:1"></div>
+      <button class="chip" id="aiBtn" title="온디바이스 AI 음성을 켜거나 끕니다">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3M12 18v3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M3 12h3M18 12h3M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="3.2"/></svg>AI 음성
+      </button>
+      <div class="dl-wrap" id="dlWrap">
+        <div class="dl-track"><div class="dl-fill" id="dlFill"></div></div>
+        <div class="dl-text"><span id="dlText">준비 중…</span>
+          <button class="dl-cancel" id="dlCancel" type="button">취소</button></div>
+      </div>
+    </div>
+
     <details class="fold" id="voiceFold">
       <summary>
-        <span class="sum-title">🌐 언어 · 🎧 목소리</span>
+        <span class="sum-title"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 010 18M12 3a15 15 0 000 18"/></svg> 언어 · 🎧 목소리</span>
         <span class="sum-now" id="voiceNow">한국어 · 여성 1</span>
       </summary>
       <div class="fold-body">
-        <div class="section-label">🌐 언어</div>
+        <div class="section-label"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 010 18M12 3a15 15 0 000 18"/></svg> 언어</div>
         <div class="langbar" id="langbar"></div>
-        <div class="section-label" style="margin-top:12px">🎧 아나운서 선택 (남·여 3명씩)</div>
+        <div class="section-label" style="margin-top:12px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14v-2a8 8 0 0116 0v2"/><rect x="2.5" y="14" width="4" height="6" rx="1.4"/><rect x="17.5" y="14" width="4" height="6" rx="1.4"/></svg> 아나운서 선택 (남·여 3명씩)</div>
         <div class="ann-groups">
           <div class="ann-group female">
-            <div class="gh">👩‍💼 여성 아나운서</div>
+            <div class="gh"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0115 0"/></svg> 여성 아나운서</div>
             <div class="ann-row" id="femaleRow"></div>
           </div>
           <div class="ann-group male">
-            <div class="gh">👨‍💼 남성 아나운서</div>
+            <div class="gh"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0115 0"/></svg> 남성 아나운서</div>
             <div class="ann-row" id="maleRow"></div>
           </div>
         </div>
+
+        <div class="section-label" style="margin-top:14px">
+          모든 목소리 <span class="vb-badge" id="vbCount" style="margin-left:6px">0개</span>
+        </div>
+        <div class="vb-tools">
+          <input class="vb-search" id="vbSearch" type="search" placeholder="목소리 이름으로 검색" aria-label="목소리 검색">
+        </div>
+        <p class="hint" id="vbHint" hidden></p>
+        <div class="vb-list" id="vbList" style="display:grid;grid-template-columns:1fr auto"></div>
+
+        <details class="sgroup" style="margin-top:12px">
+          <summary><span>목소리 섞어서 새로 만들기</span></summary>
+          <div class="group">
+            <p class="hint">AI 목소리 두 개를 비율로 섞어 새 목소리를 만듭니다. 만든 목소리는 목록에 남습니다.</p>
+            <div class="mix-row">
+              <select id="mixA" aria-label="첫 번째 목소리"></select>
+              <select id="mixB" aria-label="두 번째 목소리"></select>
+            </div>
+            <div class="field mix-bar"><label for="mixRatio">섞는 비율 <span class="val" id="mixRatioVal">50%</span></label>
+              <input type="range" id="mixRatio" min="0.1" max="0.9" step="0.05" value="0.5"></div>
+            <div class="mix-row">
+              <input class="vb-search" id="mixName" type="text" placeholder="새 목소리 이름" aria-label="새 목소리 이름">
+              <button class="chip" id="mixMake">만들기</button>
+              <button class="chip" id="mixDelete" disabled>만든 목소리 전부 삭제</button>
+            </div>
+          </div>
+        </details>
       </div>
     </details>
 
+    <div class="mode-pane" id="paneScript" role="tabpanel" aria-labelledby="modeScript">
     <div class="io-row">
-      <button class="chip" id="importBtn">📄 불러오기(.txt)</button>
-      <button class="chip" id="pasteBtn">📋 붙여넣기</button>
-      <button class="chip" id="saveBtn">⭐ 대본 저장</button>
-      <button class="chip" id="libBtn">📚 내 대본</button>
-      <button class="chip" id="srtBtn" disabled title="한 번 방송을 재생하면 타이밍이 생성됩니다.">💬 자막(SRT)</button>
-      <button class="chip" id="vttBtn" disabled>💬 VTT</button>
-      <button class="chip" id="fontBtn" title="글자 크기">🔠 크기</button>
-      <button class="chip" id="linkBtn" title="대본+설정을 링크로 공유">🔗 링크 공유</button>
+      <button class="chip" id="importBtn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/></svg> 불러오기(.txt)</button>
+      <button class="chip" id="pasteBtn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M16 5h2a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h2"/></svg> 붙여넣기</button>
+      <button class="chip" id="saveBtn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8-5.3-2.8-5.3 2.8 1-5.8L3.5 9.7l5.9-.9z"/></svg> 대본 저장</button>
+      <button class="chip" id="libBtn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A1.5 1.5 0 015.5 4H10v16H5.5A1.5 1.5 0 014 18.5z"/><path d="M14 4h4.5A1.5 1.5 0 0120 5.5v13a1.5 1.5 0 01-1.5 1.5H14z"/></svg> 내 대본</button>
+      <button class="chip" id="srtBtn" disabled title="한 번 방송을 재생하면 타이밍이 생성됩니다."><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15a2 2 0 01-2 2H8l-4 3V6a2 2 0 012-2h12a2 2 0 012 2z"/></svg> 자막(SRT)</button>
+      <button class="chip" id="vttBtn" disabled><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15a2 2 0 01-2 2H8l-4 3V6a2 2 0 012-2h12a2 2 0 012 2z"/></svg> VTT</button>
+      <button class="chip" id="fontBtn" title="글자 크기"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l4-10 4 10M4.4 14h5.2M14 17V10M14 10h3a2.2 2.2 0 010 4.4h-3"/></svg> 크기</button>
+      <button class="chip" id="linkBtn" title="대본+설정을 링크로 공유"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a4 4 0 005.7 0l2.6-2.6a4 4 0 10-5.7-5.7L11.5 6"/><path d="M14 11a4 4 0 00-5.7 0l-2.6 2.6a4 4 0 105.7 5.7L12.5 18"/></svg> 링크 공유</button>
       <input type="file" id="fileInput" accept=".txt,text/plain" hidden>
     </div>
 
     <div class="lib" id="lib">
-      <div class="lib-head">📚 내 대본 <button class="chip" id="libClose" aria-label="내 대본 닫기">✕</button></div>
+      <div class="lib-head"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A1.5 1.5 0 015.5 4H10v16H5.5A1.5 1.5 0 014 18.5z"/><path d="M14 4h4.5A1.5 1.5 0 0120 5.5v13a1.5 1.5 0 01-1.5 1.5H14z"/></svg> 내 대본 <button class="chip" id="libClose" aria-label="내 대본 닫기"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg> </button></div>
       <input type="search" id="libSearch" class="lib-search" placeholder="대본 검색…" aria-label="대본 검색">
       <div class="lib-tags" id="libTags"></div>
       <div class="lib-list" id="libList"></div>
       <div class="lib-foot">
-        <button class="chip" id="batchBtn">⚡ 전체 이어서 재생</button>
-        <button class="chip" id="libExport">⬇ 전체 내보내기(.txt)</button>
+        <button class="chip" id="batchBtn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 3L5 14h6l-1 7 8-11h-6z"/></svg> 전체 이어서 재생</button>
+        <button class="chip" id="libExport"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M8 11l4 4 4-4M5 20h14"/></svg> 전체 내보내기(.txt)</button>
       </div>
     </div>
     <div class="script-wrap">
@@ -521,47 +708,82 @@
     </div>
 
     <div class="quickstart" id="quickstart">
-      <span class="mini">✨ 예시로 바로 시작 →</span>
-      <button class="chip" data-qs="news">📺 뉴스</button>
-      <button class="chip" data-qs="greeting">👋 인사</button>
-      <button class="chip" data-qs="dialog">🗣 대화</button>
-      <button class="chip" data-qs="numbers">🔢 숫자</button>
+      <span class="mini"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5 13.8 11.3 12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/></svg> 예시로 바로 시작 →</span>
+      <button class="chip" data-qs="news"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="12" rx="1.6"/><path d="M8 3l4 4 4-4"/></svg> 뉴스</button>
+      <button class="chip" data-qs="greeting"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 13V6.5a1.5 1.5 0 013 0V12m0-5.5a1.5 1.5 0 013 0V12m0-4a1.5 1.5 0 013 0v6a6 6 0 01-6 6h-1a6 6 0 01-6-6v-2a1.5 1.5 0 013 0"/></svg> 인사</button>
+      <button class="chip" data-qs="dialog"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 4a6 6 0 010 12H9l-4 3v-9a6 6 0 016-6z"/><path d="M17 8a5 5 0 010 8"/></svg> 대화</button>
+      <button class="chip" data-qs="numbers"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4v16M10 4v16M4 9h16M4 15h16M14 4v16M18 4v16"/></svg> 숫자</button>
     </div>
 
     <div class="transport">
-      <button class="act play" id="playBtn">▶ 방송 시작</button>
-      <button class="act" id="pauseBtn" disabled>⏸ 일시정지</button>
-      <button class="act" id="stopBtn" disabled>⏹ 정지</button>
-      <button class="act rec" id="recBtn">🔴 녹음</button>
-      <button class="act" id="selBtn" title="대본에서 선택한 부분만 읽기">🖍 선택 재생</button>
-      <button class="act" id="testBtn">🔊 미리듣기</button>
+      <button class="act play" id="playBtn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l12 8-12 8z"/></svg> 방송 시작</button>
+      <button class="act" id="pauseBtn" disabled><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg> 일시정지</button>
+      <button class="act" id="stopBtn" disabled><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12"/></svg> 정지</button>
+      <button class="act rec" id="recBtn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6"/></svg> 녹음</button>
+      <button class="act" id="selBtn" title="대본에서 선택한 부분만 읽기"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5l4 4L9 19l-5 1 1-5z"/></svg> 선택 재생</button>
+      <button class="act" id="testBtn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h3.5L12 19V5L7.5 9z"/><path d="M15.5 9.5a3.5 3.5 0 010 5M18 7a7 7 0 010 10"/></svg> 미리듣기</button>
       <div class="progress"><div class="bar" id="bar"></div></div>
       <span class="meta" id="meta" aria-hidden="true">0 / 0 문장</span>
       <span class="meta" id="estimate"></span>
     </div>
 
     <div class="rec-result" id="recResult" role="status">
-      <span class="rec-info" id="recInfo">🎧 녹음 완료</span>
+      <span class="rec-info" id="recInfo"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14v-2a8 8 0 0116 0v2"/><rect x="2.5" y="14" width="4" height="6" rx="1.4"/><rect x="17.5" y="14" width="4" height="6" rx="1.4"/></svg> 녹음 완료</span>
       <audio id="recAudio" controls></audio>
-      <button class="act" id="downloadBtn">⬇ 다운로드</button>
-      <button class="act" id="wavBtn">⬇ WAV</button>
-      <button class="act" id="shareBtn">🔗 공유</button>
-      <button class="act" id="recCloseBtn" aria-label="녹음 결과 닫기">✕</button>
+      <button class="act" id="downloadBtn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M8 11l4 4 4-4M5 20h14"/></svg> 다운로드</button>
+      <button class="act" id="wavBtn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M8 11l4 4 4-4M5 20h14"/></svg> WAV</button>
+      <button class="act" id="shareBtn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a4 4 0 005.7 0l2.6-2.6a4 4 0 10-5.7-5.7L11.5 6"/><path d="M14 11a4 4 0 00-5.7 0l-2.6 2.6a4 4 0 105.7 5.7L12.5 18"/></svg> 공유</button>
+      <button class="act" id="recCloseBtn" aria-label="녹음 결과 닫기"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg> </button>
     </div>
+    </div>
+
+    <div class="mode-pane" id="paneWord" role="tabpanel" aria-labelledby="modeWord" hidden>
+      <div class="word-input">
+        <input id="wordInput" type="text" placeholder="단어나 짧은 구절을 입력하세요" autocomplete="off" aria-label="발음을 들을 단어">
+        <button class="act play" id="wordPlay"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l12 8-12 8z"/></svg>듣기</button>
+      </div>
+      <div class="vb-tools">
+        <button class="chip" id="wordSlow"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>느리게</button>
+        <button class="chip" id="wordRepeat"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h12l-3-3M20 15H8l3 3"/></svg>3번 반복</button>
+        <button class="chip" id="wordAll"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg>여러 목소리로 비교</button>
+        <button class="chip" id="wordSave" disabled title="기기 음성은 오디오를 꺼낼 수 없습니다. AI 음성을 켜면 WAV 로 저장할 수 있습니다."><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M8 11l4 4 4-4M5 20h14"/></svg>WAV 저장</button>
+      </div>
+      <div class="word-grid" id="wordGrid"></div>
+      <div class="section-label" style="margin-top:14px">최근 찾은 단어</div>
+      <div class="word-hist" id="wordHist"></div>
+    </div>
+
+    <div class="mode-pane" id="paneLong" role="tabpanel" aria-labelledby="modeLong" hidden>
+      <div class="lf-stats">
+        <div class="lf-stat"><span class="k">chars</span><span class="v" id="lfChars">0</span></div>
+        <div class="lf-stat"><span class="k">chunks</span><span class="v" id="lfCount">0</span></div>
+        <div class="lf-stat"><span class="k">done</span><span class="v" id="lfDone">0</span></div>
+        <div class="lf-stat"><span class="k">audio</span><span class="v" id="lfDur">0:00</span></div>
+      </div>
+      <div class="lf-chunks" id="lfChunks" aria-hidden="true"></div>
+      <div class="vb-tools">
+        <button class="act play" id="lfStart"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l12 8-12 8z"/></svg>합성하며 재생</button>
+        <button class="act" id="lfPause" disabled><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg>일시정지</button>
+        <button class="act" id="lfStop" disabled><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12"/></svg>정지</button>
+        <button class="act" id="lfSave" disabled><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M8 11l4 4 4-4M5 20h14"/></svg>전체 WAV 저장</button>
+      </div>
+      <div class="hint" id="lfHint" style="margin-top:10px">긴 글 모드는 AI 음성에서 조각마다 합성하면서 바로 재생하고, 끝나면 전체를 WAV 로 저장합니다. 대본은 위 <strong>대본</strong> 탭에 입력한 내용을 씁니다.</div>
+    </div>
+
   </section>
 
   <aside class="right">
     <details class="sgroup" open>
-      <summary><span>🎬 낭독 스타일</span></summary>
+      <summary><span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="1.5"/><path d="M3 7l3-3M9 7l3-3M15 7l3-3"/></svg> 낭독 스타일</span></summary>
       <div class="group">
       <div class="styles" id="styles">
-        <button data-k="talk">🗨️ 자연스러운 대화</button>
-        <button data-k="anchor" class="active">📺 뉴스 앵커</button>
-        <button data-k="calm">🎬 차분한 내레이션</button>
-        <button data-k="bright">✨ 발랄하게</button>
-        <button data-k="notice">📢 안내 방송</button>
+        <button data-k="talk"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14a2 2 0 01-2 2H8l-4 3V6a2 2 0 012-2h12a2 2 0 012 2z"/></svg> 자연스러운 대화</button>
+        <button data-k="anchor" class="active"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="12" rx="1.6"/><path d="M8 3l4 4 4-4"/></svg> 뉴스 앵커</button>
+        <button data-k="calm"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="1.5"/><path d="M3 7l3-3M9 7l3-3M15 7l3-3"/></svg> 차분한 내레이션</button>
+        <button data-k="bright"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5 13.8 11.3 12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M18 16.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></svg> 발랄하게</button>
+        <button data-k="notice"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h3l7 4V6l-7 4z"/><path d="M18 9.5a4 4 0 010 5"/></svg> 안내 방송</button>
       </div>
-      <button class="chip" id="presetSave" style="align-self:flex-start">💾 현재 목소리+설정을 프리셋으로</button>
+      <button class="chip" id="presetSave" style="align-self:flex-start"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h7V3M8 14h8v7H8z"/></svg> 현재 목소리+설정을 프리셋으로</button>
       <div class="preset-list" id="presetList"></div>
     </div>
     </details>
@@ -569,7 +791,7 @@
     <div class="hr"></div>
 
     <details class="sgroup" open>
-      <summary><span>⏩ 말하기 속도</span></summary>
+      <summary><span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6l7 6-7 6zM13 6l7 6-7 6z"/></svg> 말하기 속도</span></summary>
       <div class="group">
       <div class="speed-presets" id="speedPresets">
         <button data-r="0.7">아주<br>느리게</button>
@@ -585,7 +807,7 @@
     <div class="hr"></div>
 
     <details class="sgroup">
-      <summary><span>🎚️ 세부 조절</span></summary>
+      <summary><span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4v16M12 4v16M19 4v16"/><circle cx="5" cy="9" r="2"/><circle cx="12" cy="15" r="2"/><circle cx="19" cy="7" r="2"/></svg> 세부 조절</span></summary>
       <div class="group">
       <div class="field"><label for="pitch">음높이 <span class="val" id="pitchVal">1.00</span></label><input type="range" id="pitch" min="0.5" max="1.5" step="0.05" value="1"></div>
       <div class="field"><label for="volume">볼륨 <span class="val" id="volumeVal">100%</span></label><input type="range" id="volume" min="0" max="1" step="0.05" value="1"></div>
@@ -596,7 +818,67 @@
     <div class="hr"></div>
 
     <details class="sgroup">
-      <summary><span>🔤 발음 교정</span></summary>
+      <summary><span>소리 · 효과</span></summary>
+      <div class="group">
+        <label class="switch"><input type="checkbox" id="sfxChk" checked><span>버튼 효과음</span></label>
+        <div class="field"><label for="fxPreset">방송 후처리</label>
+          <select id="fxPreset" class="vb-search" style="width:100%">
+            <option value="studio">스튜디오 (기본)</option>
+            <option value="warm">따뜻하게</option>
+            <option value="radio">라디오</option>
+            <option value="off">끄기</option>
+          </select></div>
+        <p class="hint">후처리는 AI 음성에만 적용됩니다. 기기 음성은 브라우저가 직접 소리를 내서 중간에 손댈 수 없습니다.</p>
+      </div>
+    </details>
+
+    <div class="hr"></div>
+
+    <details class="sgroup">
+      <summary><span>정보 · 라이선스</span></summary>
+      <div class="group">
+        <p class="hint" style="line-height:1.7">
+          <strong>기기 음성</strong> — 운영체제/브라우저가 제공합니다. 음성 자체의 이용 조건은 제조사(마이크로소프트·구글·애플) 정책을 따릅니다.
+          웹 표준상 이 음성은 오디오 파일로 꺼낼 수 없습니다.
+        </p>
+        <p class="hint" style="line-height:1.7">
+          <strong>AI 음성 — Supertonic 3</strong><br>
+          모델 가중치 · <b>OpenRAIL-M</b> (Supertone Inc.)<br>
+          추론 코드 · <b>MIT</b> (Supertone Inc.) — 이 앱에 맞게 고쳐 씁니다<br>
+          실행기 · <b>onnxruntime-web (MIT)</b><br>
+          <span id="modelSource"></span>
+        </p>
+        <p class="hint" style="line-height:1.7">
+          OpenRAIL-M 은 상업적 사용을 허용하지만 <b>사용 제한</b>이 붙습니다. 특히
+          <b>동의 없이 특정인의 목소리를 흉내 내거나</b>, 사람이 만든 것처럼 속여 쓰는 용도로는 쓸 수 없습니다.
+          만들어진 음성 파일 자체에 대해서는 제작사가 권리를 주장하지 않습니다.
+        </p>
+        <div class="vb-tools">
+          <a class="chip" id="licLink" href="#" target="_blank" rel="noopener noreferrer">모델 라이선스 전문</a>
+          <a class="chip" id="noticeLink" href="#" target="_blank" rel="noopener noreferrer">변경 고지(NOTICE)</a>
+        </div>
+      </div>
+    </details>
+
+    <div class="hr"></div>
+
+    <details class="sgroup">
+      <summary><span>AI 음성 설정</span></summary>
+      <div class="group">
+        <div class="field"><label for="steps">품질 (디노이즈 스텝) <span class="val" id="stepsVal">8</span></label>
+          <input type="range" id="steps" min="4" max="16" step="1" value="8"></div>
+        <p class="hint">높을수록 또렷하지만 느려집니다. 8이 균형점입니다.</p>
+        <label class="switch"><input type="checkbox" id="gpuChk"><span>WebGPU 가속 (실험적)</span></label>
+        <p class="hint">일부 인텔 내장 그래픽에서 소리가 깨진다는 보고가 있어 기본은 꺼둡니다. 소리가 이상하면 다시 끄세요.</p>
+        <button class="chip" id="modelClear">받아둔 AI 모델 삭제</button>
+        <p class="hint" id="modelInfo"></p>
+      </div>
+    </details>
+
+    <div class="hr"></div>
+
+    <details class="sgroup">
+      <summary><span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18l4-11 4 11M5.2 14.5h5.6M15 18V9M15 9h3.2a2.4 2.4 0 010 4.8H15"/></svg> 발음 교정</span></summary>
       <div class="group">
       <div class="toggle-row"><span>숫자·단위 자동 읽기</span><label class="switch"><input type="checkbox" id="normChk" checked><span class="slider"></span></label></div>
       <div class="mini">2024년 → "이천이십사 년", ₩1,500 → "천오백 원", 010-1234-5678 → 자릿수 읽기</div>
@@ -611,22 +893,22 @@
     <div class="hr"></div>
 
     <details class="sgroup">
-      <summary><span>🗣️ 대화 모드</span></summary>
+      <summary><span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h11a3 3 0 013 3v4a3 3 0 01-3 3H9l-5 4z"/></svg> 대화 모드</span></summary>
       <div class="group">
       <div class="toggle-row"><span>여러 명이 번갈아 읽기</span><label class="switch"><input type="checkbox" id="dialogChk"><span class="slider"></span></label></div>
       <div class="mini">줄 앞에 화자를 적으면 그 아나운서 목소리로 읽습니다.<br>예) <b>남1:</b> 안녕하세요 / <b>여2:</b> 반갑습니다 (남·여 + 1~3)</div>
-      <button class="chip" id="dialogSample" style="align-self:flex-start">🗣 대화 예시 넣기</button>
+      <button class="chip" id="dialogSample" style="align-self:flex-start"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 4a6 6 0 010 12H9l-4 3v-9a6 6 0 016-6z"/><path d="M17 8a5 5 0 010 8"/></svg> 대화 예시 넣기</button>
     </div>
     </details>
 
     <div class="hr"></div>
 
     <details class="sgroup">
-      <summary><span>🎵 배경음악</span></summary>
+      <summary><span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg> 배경음악</span></summary>
       <div class="group">
       <div class="io-row">
-        <button class="chip" id="bgmBtn">🎵 음악 불러오기</button>
-        <button class="chip" id="bgmClear" disabled>✕ 제거</button>
+        <button class="chip" id="bgmBtn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg> 음악 불러오기</button>
+        <button class="chip" id="bgmClear" disabled><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg> 제거</button>
       </div>
       <div class="mini" id="bgmName">불러온 음악 없음 · CC0/로열티프리 파일만 사용하세요.</div>
       <div class="toggle-row"><span>재생 중 배경음악</span><label class="switch"><input type="checkbox" id="bgmChk"><span class="slider"></span></label></div>
@@ -638,7 +920,7 @@
     <div class="hr"></div>
 
     <details class="sgroup">
-      <summary><span>⚙️ 옵션</span></summary>
+      <summary><span><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.2 5.2l2.1 2.1M16.7 16.7l2.1 2.1M5.2 18.8l2.1-2.1M16.7 7.3l2.1-2.1"/></svg> 옵션</span></summary>
       <div class="group">
       <div class="toggle-row"><span>자연스러운 억양 (사람처럼)</span><label class="switch"><input type="checkbox" id="naturalChk" checked><span class="slider"></span></label></div>
       <div class="mini">쉼표에서 숨을 쉬고, 절마다 속도·억양이 미세하게 변하고, 문장 끝은 느려지고, 의문문은 톤이 올라갑니다.</div>
@@ -651,7 +933,7 @@
         <input type="range" id="repeat" min="1" max="5" step="1" value="1">
       </div>
       <div class="mini">받아쓰기·쉐도잉 학습용. 각 문장을 지정한 횟수만큼 반복해서 읽습니다.</div>
-      <button class="chip" id="helpBtn" style="align-self:flex-start;margin-top:4px">❓ 사용법 다시 보기</button>
+      <button class="chip" id="helpBtn" style="align-self:flex-start;margin-top:4px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.2a2.5 2.5 0 114.2 2.1c-.9.7-1.8 1.2-1.8 2.4"/><path d="M12 17h.01"/></svg> 사용법 다시 보기</button>
     </div>
     </details>
 
@@ -766,7 +1048,780 @@
     normalize: true, digitByDigit: false, dict: "",
     dialogue: false, bgmOn: false, bgmVolume: 0.2,
     fontIdx: 1, theme: "dark", wordHl: false, onboarded: false, repeat: 1, natural: true,
+    // ── 새로 추가된 상태 ──
+    engine: "system",        // "system" | "neural"
+    sfx: true,               // UI 효과음
+    fxPreset: "studio",      // 방송 후처리: off | studio | radio | warm
+    neuralVoice: "F3",       // 신경망 프리셋 또는 저장된 혼합 목소리 이름
+    neuralSteps: 8,          // 디노이즈 스텝 (품질 ↔ 속도)
+    gpu: false,              // WebGPU 사용 (기본 꺼짐 — 인텔 내장 그래픽 오디오 손상 보고)
+    mode: "script",          // script | word | long
   };
+  const MIXES_KEY = "announcer-mixes", WORDHIST_KEY = "announcer-wordhist", SETTINGS_KEY = "announcer-settings";
+
+  // ══════════════════════════════════════════════════════════════════════
+  //  UI 효과음 · VU 미터 · 방송 이펙트 (WebAudio, 합성 — 외부 음원 없음)
+  // ══════════════════════════════════════════════════════════════════════
+  const FX = (() => {
+    let ac = null, master = null, sfxGain = null, analyser = null, freqData = null;
+    const reduced = () => window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    function ctx() {
+      if (!ac) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        ac = new AC({ latencyHint: "interactive" });
+        master = ac.createGain(); master.gain.value = 1; master.connect(ac.destination);
+        // 효과음 버스 끝에 안전 컴프레서 — 여러 큐가 겹쳐도 귀를 때리지 않게 받아낸다
+        const guard = ac.createDynamicsCompressor();
+        guard.threshold.value = -12; guard.knee.value = 0; guard.ratio.value = 20;
+        guard.attack.value = 0.003; guard.release.value = 0.10;
+        guard.connect(master);
+        sfxGain = ac.createGain(); sfxGain.gain.value = 0.5; sfxGain.connect(guard);
+      }
+      if (ac.state === "suspended") ac.resume().catch(() => {});
+      return ac;
+    }
+    /* 짧은 큐 한 발. 지수 램프는 0 에 닿을 수 없으므로 EPS 로 수렴시킨다.
+       currentTime 에 바로 스케줄하면 첫 샘플이 잘려 '틱' 이 생기므로 +1ms 뒤에 건다.
+       피크는 0.18 을 넘기지 않는다 (겹쳐 울려도 거슬리지 않는 선). */
+    const EPS = 0.0001;
+    function blip(freq, ms, type, peak, hp) {
+      if (!state.sfx) return;
+      const c = ctx(); if (!c) return;
+      const t = c.currentTime + 0.001, dur = ms / 1000;
+      const o = c.createOscillator(), g = c.createGain();
+      o.type = type || "triangle"; o.frequency.setValueAtTime(freq, t);
+      const pk = Math.min(0.18, peak == null ? 0.12 : peak);
+      g.gain.setValueAtTime(EPS, t);
+      g.gain.exponentialRampToValueAtTime(pk, t + 0.002);
+      g.gain.exponentialRampToValueAtTime(EPS, t + dur);
+      let node = g;
+      if (hp) { const f = c.createBiquadFilter(); f.type = "highpass"; f.frequency.value = hp; f.Q.value = 0.707; g.connect(f); node = f; }
+      o.connect(g); node.connect(sfxGain);
+      o.start(t); o.stop(t + dur + 0.02);
+    }
+    return {
+      ctx, get analyser() { return analyser; },
+      click()  { blip(1800, 32, "triangle", 0.09, 800); },
+      toggle(on) { blip(on ? 1200 : 820, 38, "triangle", 0.10, 600); },
+      start()  { blip(660, 70, "sine", 0.14); setTimeout(() => blip(990, 90, "sine", 0.12), 60); },
+      stopSfx(){ blip(440, 70, "sine", 0.11); },
+      rec()    { blip(340, 120, "sine", 0.13); },
+      done()   { blip(784, 80, "sine", 0.12); setTimeout(() => blip(1175, 130, "sine", 0.10), 80); },
+      error()  { blip(200, 180, "sawtooth", 0.08, 160); },
+      setVolume(v) { const c = ctx(); if (c && sfxGain) sfxGain.gain.value = v; },
+      // 분석기: VU 미터용. 소스가 붙어야 움직인다.
+      ensureAnalyser() {
+        const c = ctx(); if (!c) return null;
+        if (!analyser) { analyser = c.createAnalyser(); analyser.fftSize = 128; analyser.smoothingTimeConstant = 0.72;
+          freqData = new Uint8Array(analyser.frequencyBinCount); }
+        return analyser;
+      },
+      level() {                       // 0..1
+        if (!analyser || !freqData) return 0;
+        analyser.getByteFrequencyData(freqData);
+        let sum = 0; for (let i = 0; i < freqData.length; i++) sum += freqData[i];
+        return Math.min(1, (sum / freqData.length) / 150);
+      },
+      /* 방송용 후처리 체인. 신경망 PCM 을 재생할 때만 끼운다.
+         - highpass 80Hz: 웅웅거림 제거
+         - peaking 3.2kHz +3dB: 또렷함(프레즌스)
+         - compressor: 낭독 레벨 고르게
+         한국어 낭독 기준으로 과하지 않게 잡은 값이다. */
+      broadcastChain(preset) {
+        const c = ctx(); if (!c) return null;
+        const hp = c.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 80;
+        const pk = c.createBiquadFilter(); pk.type = "peaking"; pk.frequency.value = 3200; pk.Q.value = 0.9; pk.gain.value = 3;
+        const lo = c.createBiquadFilter(); lo.type = "lowshelf"; lo.frequency.value = 200; lo.gain.value = 0;
+        const comp = c.createDynamicsCompressor();
+        comp.threshold.value = -20; comp.knee.value = 14; comp.ratio.value = 3;
+        comp.attack.value = 0.006; comp.release.value = 0.22;
+        const out = c.createGain(); out.gain.value = 1;
+        if (preset === "radio")    { hp.frequency.value = 160; pk.gain.value = 5.5; lo.gain.value = -3; comp.ratio.value = 5; out.gain.value = 1.1; }
+        else if (preset === "warm"){ hp.frequency.value = 60;  pk.gain.value = 1.5; lo.gain.value = 3;  comp.ratio.value = 2.2; }
+        else if (preset === "off") { hp.frequency.value = 20;  pk.gain.value = 0;   lo.gain.value = 0;  comp.ratio.value = 1; comp.threshold.value = 0; }
+        hp.connect(lo); lo.connect(pk); pk.connect(comp); comp.connect(out);
+        return { input: hp, output: out };
+      },
+    };
+  })();
+
+  // VU 미터 렌더링 (12칸)
+  const vuEl = $("vuMeter");
+  if (vuEl) { for (let i = 0; i < 12; i++) vuEl.appendChild(document.createElement("i")); }
+  let vuRAF = 0;
+  function vuTick() {
+    const bars = vuEl ? vuEl.children : null;
+    if (bars) {
+      const lv = FX.level();
+      const lit = Math.round(lv * bars.length);
+      for (let i = 0; i < bars.length; i++) {
+        const b = bars[i];
+        b.style.height = (20 + (i < lit ? 80 * (0.45 + 0.55 * (i / bars.length)) : 0)) + "%";
+        b.className = i < lit ? (i >= bars.length - 2 ? "peak" : "lit") : "";
+      }
+    }
+    vuRAF = requestAnimationFrame(vuTick);
+  }
+  const motionOK = () => !(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+  function vuStart() {
+    if (!motionOK()) { FX.ensureAnalyser(); return; }    // 모션 축소: 미터를 움직이지 않는다
+    if (!vuRAF) { FX.ensureAnalyser(); vuTick(); }
+  }
+  function vuStop() { if (vuRAF) { cancelAnimationFrame(vuRAF); vuRAF = 0; }
+    if (vuEl) for (const b of vuEl.children) { b.style.height = "20%"; b.className = ""; } }
+
+  // ══════════════════════════════════════════════════════════════════════
+  //  신경망 엔진 다리 (Supertonic 3) — 지연 로드, 실패하면 조용히 시스템 음성으로
+  // ══════════════════════════════════════════════════════════════════════
+  const Neural = (() => {
+    let engine = null, loading = null, lastError = null;
+    let curSource = null, chain = null;
+    const httpOK = () => location.protocol === "http:" || location.protocol === "https:";
+
+    function loadScript(src) {
+      return new Promise((res, rej) => {
+        const el = document.createElement("script");
+        el.src = src; el.async = true;
+        el.onload = () => res(); el.onerror = () => rej(new Error("스크립트를 불러오지 못했습니다: " + src));
+        document.head.appendChild(el);
+      });
+    }
+    async function boot() {
+      if (engine) return engine;
+      if (loading) return loading;
+      loading = (async () => {
+        if (!httpOK()) throw new Error("AI 음성은 웹주소(http/https)로 열었을 때만 씁니다. 파일을 직접 연 상태에서는 쓸 수 없습니다.");
+        if (!window.ort) await loadScript("vendor/ort/ort.webgpu.min.js");
+        if (!window.Supertonic) await loadScript("engine/supertonic-engine.js");
+        const e = new Supertonic.SupertonicEngine({
+          bases: ["models/supertonic-3/"],
+          ortBase: "vendor/ort/",
+          variant: state.gpu ? "fp32" : "int8",
+        });
+        engine = e; return e;
+      })();
+      try { return await loading; } finally { loading = null; }
+    }
+    // 신경망이 이 언어를 지원하는가 (중국어는 미지원 → 시스템 음성)
+    function supports(lang) { return Supertonic ? Supertonic.LANGS.includes(lang) : false; }
+
+    let installAbort = null, storageWarned = false;
+    async function ensureReady(onProgress) {
+      const e = await boot();
+      try {
+        if (!(await e.isInstalled())) {
+          installAbort = new AbortController();
+          try {
+            await e.install({ onProgress, signal: installAbort.signal });
+          } catch (err) {
+            // 저장에 실패했을 뿐 이번 세션에서는 쓸 수 있다 → 한 번만 알리고 계속 간다
+            if (err && err.name === "StorageError") {
+              if (!storageWarned) { storageWarned = true; showBanner(err.message); }
+            } else throw err;
+          } finally { installAbort = null; }
+        }
+        await e.load({ prefer: state.gpu ? "auto" : "wasm", onProgress: (x) => onProgress && onProgress({ stage: x.stage }) });
+        return e;
+      } finally {
+        // 성공이든 실패든 진행바를 반드시 치운다 (실패 시 막대가 박혀 있던 문제)
+        if (typeof dlProgress === "function") dlProgress(null);
+      }
+    }
+    function cancelInstall() { if (installAbort) { installAbort.abort(); installAbort = null; return true; } return false; }
+    function reset() { if (engine) { try { engine.dispose(); } catch (e) {} } engine = null; loading = null; }
+    async function styleFor(name) {
+      const e = await boot();
+      const mixes = loadMixes();
+      if (mixes[name]) {                       // 저장된 혼합 목소리
+        const m = mixes[name];
+        const parts = await Promise.all(m.parts.map(pp => e.loadStyle(pp[0])));
+        return Supertonic.VoiceStyle.mix(parts, m.parts.map(pp => pp[1]));
+      }
+      return e.loadStyle(name);
+    }
+    // PCM 을 방송 체인 통과시켜 재생. 끝나면 resolve.
+    let curResolve = null;
+    function play(pcm, sampleRate, { rate = 1, onEnded } = {}) {
+      const c = FX.ctx(); if (!c) return Promise.resolve("no-audio");
+      stopPlayback();
+      const buf = c.createBuffer(1, pcm.length, sampleRate);
+      buf.copyToChannel(pcm, 0);
+      const src = c.createBufferSource(); src.buffer = buf;
+      src.playbackRate.value = Math.max(0.5, Math.min(2, rate));
+      chain = FX.broadcastChain(state.fxPreset === "studio" ? null : state.fxPreset);
+      const an = FX.ensureAnalyser();
+      if (chain) { src.connect(chain.input); chain.output.connect(an); an.connect(c.destination); }
+      else { src.connect(an); an.connect(c.destination); }
+      curSource = src;
+      return new Promise((res) => {
+        // resolve 를 밖에서도 부를 수 있게 잡아 둔다. 이게 없으면 stopPlayback 이 onended 를
+        // 지우는 순간 await Neural.play(...) 가 영영 깨어나지 않아 긴 글 모드가 잠긴다.
+        curResolve = (why) => { curResolve = null; if (curSource === src) curSource = null; res(why || "ended"); };
+        src.onended = () => { onEnded && onEnded(); curResolve && curResolve("ended"); };
+        src.start();
+      });
+    }
+    async function pausePlayback() { const c = FX.ctx(); if (c && c.state === "running") { try { await c.suspend(); } catch (e) {} } }
+    async function resumePlayback() { const c = FX.ctx(); if (c && c.state === "suspended") { try { await c.resume(); } catch (e) {} } }
+    function stopPlayback() {
+      const r = curResolve; curResolve = null;
+      if (curSource) { try { curSource.onended = null; curSource.stop(); } catch (e) {} curSource = null; }
+      if (chain) { try { chain.output.disconnect(); } catch (e) {} chain = null; }
+      if (r) r("stopped");            // 기다리던 쪽을 반드시 깨운다
+    }
+    return { boot, ensureReady, styleFor, play, stopPlayback, pausePlayback, resumePlayback, supports, cancelInstall, reset,
+             get engine() { return engine; }, get lastError() { return lastError; },
+             set lastError(v) { lastError = v; },
+             get busy() { return !!curSource; } };
+  })();
+
+  // ── 혼합 목소리 저장소 ──
+  function loadMixes() { try { return JSON.parse(localStorage.getItem(MIXES_KEY) || "{}"); } catch (e) { return {}; } }
+  function saveMixes(m) { try { localStorage.setItem(MIXES_KEY, JSON.stringify(m)); } catch (e) {} }
+
+  // ── 신경망 목소리 카탈로그 ──
+  const NEURAL_VOICES = [
+    { id: "F3", name: "정아 · 아나운서", sub: "female · broadcast · clear", gender: "F", hq: true },
+    { id: "F1", name: "수연 · 차분한", sub: "female · calm · low", gender: "F" },
+    { id: "F2", name: "하늘 · 밝은", sub: "female · bright · youthful", gender: "F" },
+    { id: "F4", name: "민서 · 또렷한", sub: "female · crisp · confident", gender: "F" },
+    { id: "F5", name: "はな 유나 · 부드러운", sub: "female · gentle · soothing", gender: "F" },
+    { id: "M3", name: "준호 · 앵커", sub: "male · authoritative · trustworthy", gender: "M", hq: true },
+    { id: "M1", name: "도현 · 활기찬", sub: "male · lively · confident", gender: "M" },
+    { id: "M2", name: "성민 · 묵직한", sub: "male · deep · serious", gender: "M" },
+    { id: "M4", name: "지훈 · 편안한", sub: "male · soft · friendly", gender: "M" },
+    { id: "M5", name: "태윤 · 이야기꾼", sub: "male · warm · storytelling", gender: "M" },
+  ];
+  // 이름 오타 보정 (F5 는 한국어 이름만)
+  NEURAL_VOICES[4].name = "유나 · 부드러운";
+
+  function engineBadgeUpdate() {
+    const b = $("engineBadge"); if (!b) return;
+    const neural = state.engine === "neural";
+    const ai = $("aiBtn");
+    if (ai) { ai.setAttribute("aria-pressed", neural ? "true" : "false");
+              ai.title = neural ? "AI 음성을 끄고 기기 음성으로 돌아갑니다"
+                                : "온디바이스 AI 음성을 켭니다 (첫 사용 시 한 번 내려받습니다)"; }
+    const langOK = !neural || !window.Supertonic || Supertonic.LANGS.includes(state.lang);
+    b.textContent = neural ? (langOK ? "ai voice · supertonic" : "ai voice · " + state.lang + " 미지원") : "system voice";
+    b.className = "ebadge " + (neural ? (langOK ? "on" : "warn") : "on");
+    document.body.classList.toggle("neural", neural && langOK);
+  }
+  function dlProgress(p) {
+    const w = $("dlWrap"), f = $("dlFill"), t = $("dlText");
+    if (!w) return;
+    if (!p) { w.classList.remove("show"); return; }
+    w.classList.add("show");
+    if (p.stage) { t.textContent = String(p.stage).replace("download:", "모델 준비 · ").replace("session:", "엔진 시작 · ").replace("config", "설정 읽는 중").replace("indexer", "글자표 읽는 중"); return; }
+    if (p.overallTotal) {
+      const pct = Math.min(100, Math.round(p.overallReceived / p.overallTotal * 100));
+      f.style.width = pct + "%";
+      t.textContent = `AI 음성 내려받는 중 ${pct}% · ${(p.overallReceived/1e6).toFixed(0)}/${(p.overallTotal/1e6).toFixed(0)}MB`;
+    } else if (p.file) {
+      t.textContent = "AI 음성 준비 중 · " + p.file.split("/").pop();
+    }
+  }
+  async function enableNeural() {
+    try {
+      $("aiBtn").setAttribute("aria-busy", "true");
+      dlProgress({ stage: "config" });
+      await Neural.ensureReady(dlProgress);
+      state.engine = "neural"; Neural.lastError = null;
+      dlProgress(null); engineBadgeUpdate(); renderVoiceBrowser(); persistSettings();
+      FX.done(); toast("AI 음성을 켰습니다");
+      if (window.Supertonic && !Supertonic.LANGS.includes(state.lang)) {
+        toast(langName(state.lang) + "는 AI 음성이 지원하지 않아 기기 음성으로 읽습니다");
+      }
+    } catch (e) {
+      Neural.lastError = e; state.engine = "system";
+      dlProgress(null); engineBadgeUpdate();
+      if (e && e.name === "AbortError") { toast("내려받기를 취소했습니다"); }
+      else { FX.error(); showBanner("AI 음성을 켤 수 없습니다 — " + e.message); }
+    } finally { $("aiBtn").removeAttribute("aria-busy"); }
+  }
+  function disableNeural() {
+    Neural.stopPlayback(); Neural.reset();        // 세션을 실제로 놓아준다 (메모리 + 설정 반영)
+    state.engine = "system";
+    engineBadgeUpdate(); renderVoiceBrowser(); updateVoiceNow(); renderMixOptions(); persistSettings(); FX.toggle(false);
+    toast("기기 음성으로 돌아왔습니다");
+  }
+  $("dlCancel") && $("dlCancel").addEventListener("click", () => {
+    if (Neural.cancelInstall()) { dlProgress(null); toast("내려받기를 취소했습니다"); }
+  });
+  $("aiBtn") && $("aiBtn").addEventListener("click", async () => {
+    if (state.engine === "neural") { disableNeural(); return; }
+    // 처음 켜는 것이면 내려받는 용량을 먼저 알린다 (모바일 데이터 주의)
+    try {
+      const e = await Neural.boot();
+      if (!(await e.isInstalled())) {
+        const mb = Math.round((await e.totalBytes()) / 1e6);
+        if (mb > 5 && !confirm("AI 음성을 쓰려면 약 " + mb + "MB 를 한 번 내려받아야 합니다.\n(이동통신 데이터 주의 · 받아 둔 뒤에는 오프라인에서도 쓸 수 있습니다)\n\n계속할까요?")) return;
+      }
+    } catch (err) { /* 용량을 못 구하면 그냥 진행하고, 실패는 아래에서 안내한다 */ }
+    enableNeural();
+  });
+
+  function persistSettings() {
+    try {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+        engine: state.engine, sfx: state.sfx, fxPreset: state.fxPreset,
+        neuralVoice: state.neuralVoice, neuralSteps: state.neuralSteps, gpu: state.gpu,
+      }));
+    } catch (e) {}
+  }
+  function restoreSettings() {
+    try {
+      const o = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
+      if (typeof o.sfx === "boolean") state.sfx = o.sfx;
+      if (o.fxPreset) state.fxPreset = o.fxPreset;
+      if (o.neuralVoice) state.neuralVoice = o.neuralVoice;
+      if (o.neuralSteps) state.neuralSteps = o.neuralSteps;
+      if (typeof o.gpu === "boolean") state.gpu = o.gpu;
+      // engine 은 복원하지 않는다: 켤 때마다 모델 준비 상태를 다시 확인해야 하므로 사용자가 직접 켜게 둔다
+    } catch (e) {}
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  //  음성 브라우저 — 기기 음성 전부 + AI 목소리 + 혼합 목소리
+  // ══════════════════════════════════════════════════════════════════════
+  let vbFilter = "", vbPreviewing = null;
+  const deadVoices = new Set();
+  let previewTimer = null;        // 미리듣기에서 실패한 음성 (안드로이드는 없는 음성도 목록에 올린다)
+
+  /* 플랫폼이 주는 이름은 사람이 읽기 어렵다.
+     "Microsoft SunHi Online (Natural) - Korean (Korea)"  → "선히"
+     "Android Speech ... ko-kr-x-kob-network"             → "한국어 음성 2"
+     원래 이름은 부제목에 남겨 둔다. */
+  const VOICE_ALIAS = [
+    [/SunHi/i, "선히"], [/InJoon/i, "인준"], [/Hyunsu/i, "현수"], [/Heami/i, "혜미"],
+    [/Xiaoxiao/i, "샤오샤오"], [/Yunxi/i, "윈시"], [/Huihui/i, "후이후이"], [/Yunyang/i, "윈양"],
+    [/Aria/i, "Aria"], [/Guy/i, "Guy"], [/Jenny/i, "Jenny"], [/Yuna/i, "유나"],
+  ];
+  const ANDROID_RE = /ko-kr-x-([a-z]{3})|-x-[a-z]{3}-(network|local)/i;
+  function prettyVoiceName(v) {
+    const raw = v.name || "";
+    for (const [re, ko] of VOICE_ALIAS) if (re.test(raw)) {
+      const natural = /Online \(Natural\)|\(Natural\)/i.test(raw);
+      return ko + (natural ? " · 자연음성" : "");
+    }
+    const m = raw.match(ANDROID_RE);
+    if (m) {
+      const idx = { ism: 1, kob: 2, koc: 3, kod: 4 }[(m[1] || "").toLowerCase()] || "";
+      return langName(state.lang) + " 음성" + (idx ? " " + idx : "");
+    }
+    return shorten(raw.replace(/\s*-\s*[A-Z][a-z]+\s*\([^)]*\)\s*$/, ""), 40);
+  }
+  function voiceCatalog() {
+    const out = [];
+    if (state.engine === "neural" && window.Supertonic && Supertonic.LANGS.includes(state.lang)) {
+      NEURAL_VOICES.forEach(v => out.push({
+        kind: "ai", id: v.id, name: v.name, sub: v.sub,
+        badge: v.hq ? "hq" : "ai", badgeText: v.hq ? "★ hq" : "ai",
+      }));
+      const mixes = loadMixes();
+      Object.keys(mixes).forEach(k => out.push({
+        kind: "mix", id: k, name: k, badge: "ai", badgeText: "mix",
+        sub: "혼합 · " + mixes[k].parts.map(pp => pp[0] + " " + Math.round(pp[1] * 100) + "%").join(" + "),
+      }));
+    }
+    langVoices(state.lang).forEach(v => {
+      const q = qualityRank(v);
+      const dead = deadVoices.has(v.voiceURI);
+      out.push({ kind: "sys", id: v.voiceURI, name: prettyVoiceName(v) + (dead ? " (사용 불가)" : ""),
+        sub: (v.lang || "") + (v.localService ? " · 기기 내장" : " · 온라인") + " · " + shorten(v.name, 30),
+        badge: dead ? "" : (q >= 60 ? "hq" : ""), badgeText: dead ? "실패" : (q >= 60 ? "★ hq" : "기본"), q, dead });
+    });
+    return out;
+  }
+  function renderVoiceBrowser(focusId) {
+    const list = $("vbList"); if (!list) return;
+    const all = voiceCatalog();
+    const f = vbFilter.trim().toLowerCase();
+    const items = f ? all.filter(v => (v.name + " " + v.sub).toLowerCase().includes(f)) : all;
+    const cnt = $("vbCount"); if (cnt) cnt.textContent = all.length + "개";
+    const hint = $("vbHint");
+    if (hint) {
+      if (/Android/i.test(navigator.userAgent)) {
+        hint.hidden = false;
+        hint.textContent = "안드로이드는 설치되지 않은 목소리도 목록에 올립니다. ▷ 로 미리 들어보고 고르세요 — 소리가 안 나면 ‘사용 불가’ 로 표시됩니다.";
+      } else if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+        hint.hidden = false;
+        hint.textContent = "아이폰·아이패드는 기본 설치된 목소리만 웹에 공개됩니다. 따로 받은 고품질 목소리는 여기 나오지 않습니다.";
+      } else hint.hidden = true;
+    }
+    list.innerHTML = "";
+    if (!items.length) {
+      const d = document.createElement("div"); d.className = "vb-empty";
+      d.textContent = f ? "검색 결과가 없습니다." : "이 언어로 쓸 수 있는 음성이 없습니다.";
+      list.appendChild(d); return;
+    }
+    items.forEach(v => {
+      const row = document.createElement("div"); row.style.display = "contents";
+      const b = document.createElement("button");
+      b.className = "vb-item"; b.type = "button";
+      const selected = (v.kind === "sys") ? (state.engine !== "neural" && state.voiceURI === v.id)
+                                          : (state.engine === "neural" && state.neuralVoice === v.id);
+      b.setAttribute("aria-pressed", selected ? "true" : "false");
+      b.setAttribute("aria-label", v.name + ", " + v.sub + (v.badgeText ? ", " + v.badgeText : "") + " — 선택");
+      b.innerHTML = '<span class="vb-main"><span class="vb-name"></span><span class="vb-sub"></span></span>'
+                  + (v.badgeText ? '<span class="vb-badge ' + (v.badge || "") + '"></span>' : "");
+      b.querySelector(".vb-name").textContent = v.name;
+      b.querySelector(".vb-sub").textContent = v.sub;
+      if (v.badgeText) b.querySelector(".vb-badge").textContent = v.badgeText;
+      b.addEventListener("click", () => {
+        FX.click();
+        if (v.kind === "sys") {
+          state.engine = "system"; state.voiceURI = v.id; state.slotPitch = 1;
+          const vv = voices.find(x => x.voiceURI === v.id);
+          if (vv) { state.gender = detectGender(vv) === "M" ? "M" : "F"; }
+          engineBadgeUpdate();
+        } else {
+          state.neuralVoice = v.id;
+        }
+        persistSettings(); renderVoiceBrowser(v.id); updateVoiceNow(); updateVoiceHint();
+      });
+      const play = document.createElement("button");
+      play.className = "vb-play"; play.type = "button";
+      play.setAttribute("aria-label", v.name + " 미리듣기");
+      play.innerHTML = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l12 8-12 8z"/></svg>';
+      play.addEventListener("click", (e) => { e.stopPropagation(); previewVoice(v); });
+      if (focusId && v.id === focusId) b.dataset.refocus = "1";
+      list.appendChild(b); list.appendChild(play);
+    });
+    // 목록을 통째로 다시 그리면 방금 누른 버튼이 사라져 포커스가 body 로 떨어진다
+    if (focusId) { const t = list.querySelector('[data-refocus="1"]'); if (t) t.focus(); }
+  }
+  async function previewVoice(v) {
+    const line = (TEST_LINE && TEST_LINE[state.lang]) || "안녕하십니까. 오늘의 뉴스입니다.";
+    if (v.kind === "sys") {
+      if (synth) synth.cancel();
+      const u = new SpeechSynthesisUtterance(line);
+      const vv = voices.find(x => x.voiceURI === v.id);
+      if (vv) { u.voice = vv; u.lang = vv.lang; }
+      u.rate = state.rate; u.volume = state.volume;
+      // 안드로이드 크롬은 설치돼 있지 않은 음성도 목록에 올린다 → 실제로 울리는지 확인한다
+      let started = false;
+      clearTimeout(previewTimer);
+      u.onstart = () => { started = true; clearTimeout(previewTimer); if (deadVoices.delete(v.id)) renderVoiceBrowser(); };
+      u.onerror = (ev) => {
+        clearTimeout(previewTimer);
+        // cancel/interrupt 는 우리가 직접 끊은 것이다 — 음성 탓이 아니다
+        if (ev && /cancel|interrupt/i.test(ev.error || "")) return;
+        deadVoices.add(v.id); renderVoiceBrowser();
+      };
+      previewTimer = setTimeout(() => { if (!started) { deadVoices.add(v.id); renderVoiceBrowser(); } }, 2500);
+      synth.speak(u); return;
+    }
+    try {
+      vbPreviewing = v.id; vuStart();
+      const e = await Neural.ensureReady(dlProgress); dlProgress(null);
+      const style = await Neural.styleFor(v.id);
+      const r = await e.synthesize(line, { lang: state.lang, style, steps: Math.min(6, state.neuralSteps), speed: 1.05 });
+      await Neural.play(r.pcm, r.sampleRate, { rate: state.rate });
+    } catch (err) { FX.error(); showBanner("미리듣기 실패 — " + err.message); }
+    finally { vbPreviewing = null; vuStop(); }
+  }
+
+  // ── 목소리 섞기 ──
+  async function mixVoices() {
+    const a = $("mixA").value, b = $("mixB").value, ratio = +$("mixRatio").value;
+    const name = ($("mixName").value || "").trim() || (a + "+" + b);
+    if (a === b) { toast("서로 다른 두 목소리를 고르세요"); return; }
+    try {
+      await Neural.boot();
+      const mixes = loadMixes();
+      mixes[name] = { parts: [[a, 1 - ratio], [b, ratio]] };
+      saveMixes(mixes);
+      state.neuralVoice = name; persistSettings();
+      renderVoiceBrowser(); renderMixOptions(); updateVoiceNow();
+      FX.done(); toast("새 목소리 “" + name + "” 를 만들었습니다");
+    } catch (e) { FX.error(); showBanner("목소리를 섞지 못했습니다 — " + e.message); }
+  }
+  function renderMixOptions() {
+    ["mixA", "mixB"].forEach((id, k) => {
+      const sel = $(id); if (!sel) return;
+      const cur = sel.value;
+      sel.innerHTML = "";
+      NEURAL_VOICES.forEach(v => {
+        const o = document.createElement("option"); o.value = v.id; o.textContent = v.name;
+        sel.appendChild(o);
+      });
+      sel.value = cur || (k === 0 ? "F3" : "M3");
+    });
+    const mixes = loadMixes(), del = $("mixDelete");
+    if (del) del.disabled = !Object.keys(mixes).length;
+    const mk = $("mixMake");
+    if (mk) {
+      const off = state.engine !== "neural";
+      mk.disabled = off;
+      mk.title = off ? "AI 음성을 먼저 켜 주세요 — 섞기는 AI 목소리에만 쓸 수 있습니다" : "두 목소리를 비율로 섞어 새 목소리를 만듭니다";
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  //  모드 전환 · 단어 모드 · 긴 글 모드
+  // ══════════════════════════════════════════════════════════════════════
+  function setMode(m, opts) {
+    if (m !== state.mode) stopEverything();      // 모드를 넘나들 때 재생이 남아 있으면 트랜스포트 상태가 꼬인다
+    state.mode = m;
+    ["script", "word", "long"].forEach(k => {
+      const pane = $("pane" + k[0].toUpperCase() + k.slice(1));
+      const tab = $("mode" + k[0].toUpperCase() + k.slice(1));
+      if (pane) pane.hidden = (k !== m);
+      if (tab) { tab.classList.toggle("active", k === m); tab.setAttribute("aria-selected", k === m ? "true" : "false"); tab.tabIndex = (k === m) ? 0 : -1; }
+    });
+    if (m === "long") updateLongStats();
+    // 키보드로 탭을 넘길 때는 입력칸이 포커스를 가로채면 안 된다 (tablist 는 탭에 포커스가 남아야 한다)
+    if (m === "word") { renderWordHistory(); if (!(opts && opts.keepFocus)) setTimeout(() => $("wordInput") && $("wordInput").focus(), 30); }
+  }
+  // 단어·긴 글 모드에서는 #script 가 숨겨져 있어 링크가 아무 데도 못 간다 → 대본 탭으로 먼저 되돌린다
+  $("skipLink") && $("skipLink").addEventListener("click", (e) => {
+    if (state.mode !== "script") { e.preventDefault(); setMode("script"); setTimeout(() => script.focus(), 30); }
+  });
+  const modeTabs = Array.from(document.querySelectorAll(".modebar button"));
+  modeTabs.forEach(b => b.addEventListener("click", () => { FX.click(); setMode(b.dataset.mode); }));
+  // tablist 는 화살표로 옮겨 다니는 것이 표준이다. tabindex 도 선택된 탭만 0 으로 둔다.
+  const modebar = document.querySelector(".modebar");
+  modebar && modebar.addEventListener("keydown", (e) => {
+    const i = modeTabs.indexOf(document.activeElement);
+    if (i < 0) return;
+    let n = -1;
+    if (e.key === "ArrowRight") n = (i + 1) % modeTabs.length;
+    else if (e.key === "ArrowLeft") n = (i - 1 + modeTabs.length) % modeTabs.length;
+    else if (e.key === "Home") n = 0;
+    else if (e.key === "End") n = modeTabs.length - 1;
+    if (n < 0) return;
+    e.preventDefault(); FX.click(); setMode(modeTabs[n].dataset.mode, { keepFocus: true }); modeTabs[n].focus();
+  });
+
+  // 파일명용 시각 도장. ts(sec) 는 자막 타임코드 전용이라 인자 없이 부르면 NaN 이 나온다.
+  function fileStamp() {
+    const d = new Date(), z = (n) => String(n).padStart(2, "0");
+    return d.getFullYear() + z(d.getMonth() + 1) + z(d.getDate()) + "_" + z(d.getHours()) + z(d.getMinutes()) + z(d.getSeconds());
+  }
+  let lfAbort = null, lfPcms = [], lfPaused = false, lfSr = 44100;
+  let neuralAbort = null;
+
+  // 어떤 경로로 소리가 나고 있든 전부 멈춘다
+  function stopEverything() {
+    try { if (neuralAbort) neuralAbort.abort(); } catch (e) {}
+    try { if (lfAbort) lfAbort.abort(); } catch (e) {}
+    lfPaused = false; wordGen++;             // 진행 중인 단어 반복도 폐기
+    if (typeof neuralPaused !== "undefined" && neuralPaused) { neuralPaused = false; pauseBtn.innerHTML = PAUSE_SVG; }
+    Neural.resumePlayback(); Neural.stopPlayback();
+    if (typeof setLfPauseLabel === "function") setLfPauseLabel();
+    if (synth) synth.cancel();
+    if (typeof gapTimer !== "undefined") clearTimeout(gapTimer);
+    if (playing) setTransport(false);
+    vuStop();
+  }
+
+  // ── 단어 모드 ──
+  function loadWordHist() { try { return JSON.parse(localStorage.getItem(WORDHIST_KEY) || "[]"); } catch (e) { return []; } }
+  function pushWordHist(w) {
+    const h = loadWordHist().filter(x => x !== w); h.unshift(w);
+    try { localStorage.setItem(WORDHIST_KEY, JSON.stringify(h.slice(0, 24))); } catch (e) {}
+    renderWordHistory();
+  }
+  function renderWordHistory() {
+    const el = $("wordHist"); if (!el) return;
+    el.innerHTML = "";
+    const h = loadWordHist();
+    if (!h.length) { const p = document.createElement("span"); p.className = "hint"; p.textContent = "아직 없습니다."; el.appendChild(p); return; }
+    h.forEach(w => {
+      const b = document.createElement("button"); b.type = "button"; b.textContent = w;
+      b.addEventListener("click", () => { $("wordInput").value = w; speakWord(w); });
+      el.appendChild(b);
+    });
+  }
+  let lastWordPcm = null, lastWordSr = 44100, wordGen = 0;
+  async function speakWord(word, { rate, repeat = 1 } = {}) {
+    word = (word || "").trim(); if (!word) return;
+    pushWordHist(word);
+    const r = rate == null ? state.rate : rate;
+    Neural.stopPlayback(); if (synth) synth.cancel();
+    const myGen = ++wordGen;                       // 이후 이 값이 바뀌면 이 호출은 폐기된 것이다
+    $("wordSave").disabled = true; lastWordPcm = null;
+    const useNeural = state.engine === "neural" && window.Supertonic && Supertonic.LANGS.includes(state.lang);
+    for (let n = 0; n < repeat; n++) {
+      if (myGen !== wordGen) return;
+      if (useNeural) {
+        try {
+          vuStart();
+          const e = await Neural.ensureReady(dlProgress); dlProgress(null);
+          const style = await Neural.styleFor(state.neuralVoice);
+          const res = await e.synthesize(word, { lang: state.lang, style, steps: state.neuralSteps, speed: 1.05 });
+          if (myGen !== wordGen) return;
+          lastWordPcm = res.pcm; lastWordSr = res.sampleRate;
+          $("wordSave").disabled = false;
+          await Neural.play(res.pcm, res.sampleRate, { rate: r });
+        } catch (err) { FX.error(); showBanner("단어 발음 실패 — " + err.message); }
+        finally { vuStop(); }
+      } else {
+        await new Promise(res2 => {
+          if (synth) synth.cancel();
+          const u = new SpeechSynthesisUtterance(preprocess(word));
+          const v = getVoice(); if (v) { u.voice = v; u.lang = v.lang; } else u.lang = state.lang;
+          u.rate = r; u.pitch = state.pitch; u.volume = state.volume;
+          u.onend = res2; u.onerror = res2; synth.speak(u);
+        });
+      }
+      if (myGen !== wordGen) return;
+      if (n < repeat - 1) await new Promise(r2 => setTimeout(r2, 380));
+    }
+  }
+  // 여러 목소리로 한 번에 비교
+  async function compareWord(word) {
+    word = (word || "").trim(); if (!word) return;
+    const myGen = ++wordGen;
+    const grid = $("wordGrid"); grid.innerHTML = "";
+    const cat = voiceCatalog().slice(0, 8);
+    const cards = cat.map(v => {
+      const c = document.createElement("button"); c.type = "button"; c.className = "word-card";
+      c.innerHTML = '<span class="wc-name"></span><span class="wc-sub"></span>';
+      c.querySelector(".wc-name").textContent = v.name;
+      c.querySelector(".wc-sub").textContent = v.sub;
+      c.addEventListener("click", () => previewWordWith(v, word, c));
+      grid.appendChild(c); return { v, c };
+    });
+    for (const { v, c } of cards) { if (myGen !== wordGen) return; await previewWordWith(v, word, c); }
+  }
+  async function previewWordWith(v, word, card) {
+    card.classList.add("speaking");
+    try {
+      if (v.kind === "sys") {
+        await new Promise(res => {
+          if (synth) synth.cancel();
+          const u = new SpeechSynthesisUtterance(preprocess(word));
+          const vv = voices.find(x => x.voiceURI === v.id); if (vv) { u.voice = vv; u.lang = vv.lang; }
+          u.rate = state.rate; u.volume = state.volume; u.onend = res; u.onerror = res; synth.speak(u);
+        });
+      } else {
+        vuStart();
+        const e = await Neural.ensureReady(dlProgress); dlProgress(null);
+        const style = await Neural.styleFor(v.id);
+        const r = await e.synthesize(word, { lang: state.lang, style, steps: Math.min(6, state.neuralSteps), speed: 1.05 });
+        await Neural.play(r.pcm, r.sampleRate, { rate: state.rate });
+      }
+    } catch (e) { /* 한 목소리 실패는 건너뛴다 */ }
+    finally { card.classList.remove("speaking"); vuStop(); }
+  }
+  $("wordPlay") && $("wordPlay").addEventListener("click", () => { FX.start(); speakWord($("wordInput").value); });
+  $("wordInput") && $("wordInput").addEventListener("keydown", e => { if (e.key === "Enter") { FX.start(); speakWord($("wordInput").value); } });
+  $("wordSlow") && $("wordSlow").addEventListener("click", () => { FX.click(); speakWord($("wordInput").value, { rate: Math.max(0.5, state.rate * 0.6) }); });
+  $("wordRepeat") && $("wordRepeat").addEventListener("click", () => { FX.click(); speakWord($("wordInput").value, { repeat: 3 }); });
+  $("wordAll") && $("wordAll").addEventListener("click", () => { FX.click(); compareWord($("wordInput").value); });
+  $("wordSave") && $("wordSave").addEventListener("click", () => {
+    if (!lastWordPcm) return;
+    const buf = Supertonic.writeWav(lastWordPcm, lastWordSr);
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([buf], { type: "audio/wav" }));
+    a.download = ($("wordInput").value || "word").replace(/[^\w가-힣]+/g, "_") + ".wav";
+    a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); FX.done();
+  });
+
+  // ── 긴 글 모드 ──
+
+  function lfChunksOf(text) {
+    if (window.Supertonic) return Supertonic.chunkText(text, (state.lang === "ko" || state.lang === "ja") ? 120 : 300);
+    return splitSentences(text).map(q => q.text);
+  }
+  function updateLongStats() {
+    const text = script.value || "";
+    const chunks = text.trim() ? lfChunksOf(text) : [];
+    $("lfChars").textContent = text.length;
+    $("lfCount").textContent = chunks.length;
+    $("lfDone").textContent = lfPcms.length;
+    const total = lfPcms.reduce((a, p) => a + p.length, 0) / lfSr;
+    $("lfDur").textContent = Math.floor(total / 60) + ":" + String(Math.floor(total % 60)).padStart(2, "0");
+    const g = $("lfChunks"); g.innerHTML = "";
+    chunks.forEach((_, i) => {
+      const d = document.createElement("i"); d.className = "lf-chunk" + (i < lfPcms.length ? " done" : (i === lfPcms.length && lfAbort ? " cur" : ""));
+      d.style.display = "block"; g.appendChild(d);
+    });
+  }
+  async function longFormStart() {
+    const text = (script.value || "").trim();
+    if (!text) { toast("대본 탭에 읽을 글을 먼저 넣어 주세요"); return; }
+    if (state.engine !== "neural" || !window.Supertonic || !Supertonic.LANGS.includes(state.lang)) {
+      toast("긴 글 모드는 AI 음성에서 씁니다. 위 ‘AI 음성’ 을 먼저 켜 주세요"); return;
+    }
+    stopEverything();
+    lfAbort = new AbortController(); lfPcms = []; lfPaused = false;
+    $("lfStart").disabled = true; $("lfPause").disabled = false; $("lfStop").disabled = false; $("lfSave").disabled = true;
+    document.body.classList.add("playing"); FX.start(); vuStart();
+    try {
+      const e = await Neural.ensureReady(dlProgress); dlProgress(null);
+      const style = await Neural.styleFor(state.neuralVoice);
+      lfSr = e.sampleRate;
+      await e.synthesize(text, {
+        lang: state.lang, style, steps: state.neuralSteps, speed: 1.05, signal: lfAbort.signal,
+        concat: false,                       // 조각은 lfPcms 가 들고 있다 — 엔진이 또 합치면 메모리가 두 배가 된다
+        onProgress: () => updateLongStats(),
+        onChunk: async (pcm) => {
+          lfPcms.push(pcm); updateLongStats();
+          while (lfPaused && lfAbort && !lfAbort.signal.aborted) await new Promise(r => setTimeout(r, 120));
+          if (!lfAbort || lfAbort.signal.aborted) return;
+          await Neural.play(pcm, lfSr, { rate: state.rate });   // 앞 조각을 재생하는 동안 다음 조각이 합성된다
+        },
+      });
+      $("lfSave").disabled = !lfPcms.length;
+      FX.done(); toast("긴 글 합성이 끝났습니다");
+    } catch (err) {
+      if (err && err.name === "AbortError") toast("긴 글 합성을 멈췄습니다");
+      else { FX.error(); showBanner("긴 글 합성 실패 — " + err.message); }
+      $("lfSave").disabled = !lfPcms.length;
+    } finally {
+      lfAbort = null; document.body.classList.remove("playing"); vuStop();
+      $("lfStart").disabled = false; $("lfPause").disabled = true; $("lfStop").disabled = true;
+      lfPaused = false; setLfPauseLabel();
+      updateLongStats();
+    }
+  }
+  $("lfStart") && $("lfStart").addEventListener("click", longFormStart);
+  function setLfPauseLabel() {
+    const b = $("lfPause"); if (!b) return;
+    b.innerHTML = lfPaused
+      ? '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l12 8-12 8z"/></svg>이어듣기'
+      : '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg>일시정지';
+  }
+  $("lfPause") && $("lfPause").addEventListener("click", async () => {
+    lfPaused = !lfPaused; FX.toggle(!lfPaused); setLfPauseLabel();
+    // 재생을 끊지 않고 오디오만 멈춘다 — 끊으면 합성 루프가 끝나 버려 '정지' 와 구별되지 않는다
+    if (lfPaused) await Neural.pausePlayback(); else await Neural.resumePlayback();
+  });
+  $("lfStop") && $("lfStop").addEventListener("click", async () => {
+    if (lfAbort) lfAbort.abort();
+    lfPaused = false; setLfPauseLabel();
+    await Neural.resumePlayback();          // 멈춰 있던 컨텍스트를 깨워야 다음 재생이 들린다
+    Neural.stopPlayback(); FX.stopSfx();
+  });
+  $("lfSave") && $("lfSave").addEventListener("click", () => {
+    if (!lfPcms.length) return;
+    // 조각을 Float32 로 한 번 합친 뒤 다시 16bit 로 바꾸면 긴 글에서 메모리가 몇 배로 뛴다.
+    // 헤더를 먼저 쓰고 조각을 바로 16bit 로 흘려 넣는다.
+    const gap = Math.floor(0.3 * lfSr);
+    const total = lfPcms.reduce((a, p) => a + p.length, 0) + gap * (lfPcms.length - 1);
+    const buf = new ArrayBuffer(44 + total * 2), dv = new DataView(buf);
+    const str = (o2, t) => { for (let i = 0; i < t.length; i++) dv.setUint8(o2 + i, t.charCodeAt(i)); };
+    str(0, "RIFF"); dv.setUint32(4, 36 + total * 2, true); str(8, "WAVE"); str(12, "fmt ");
+    dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true);
+    dv.setUint32(24, lfSr, true); dv.setUint32(28, lfSr * 2, true); dv.setUint16(32, 2, true);
+    dv.setUint16(34, 16, true); str(36, "data"); dv.setUint32(40, total * 2, true);
+    let off = 44;
+    lfPcms.forEach((pcm, i) => {
+      for (let k = 0; k < pcm.length; k++, off += 2) {
+        const v = Math.max(-1, Math.min(1, pcm[k]));
+        dv.setInt16(off, v < 0 ? v * 32768 : v * 32767, true);
+      }
+      if (i < lfPcms.length - 1) off += gap * 2;   // 무음 구간은 0 이므로 건너뛰면 된다
+    });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([buf], { type: "audio/wav" }));
+    a.download = "announcer_" + state.lang + "_" + fileStamp() + ".wav";
+    a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 6000); FX.done();
+  });
 
   // ---------- 낭독 스타일 프리셋 (rate/pitch/gap/chime 묶음) ----------
   const STYLES = {
@@ -885,15 +1940,17 @@
   }
 
   function renderSlots(noVoices) {
-    const faces = { F: ["👩","👩‍🦰","🧑‍🦱"], M: ["👨","🧔","👨‍🦰"] };
+    // 얼굴 이모지 대신 선 아이콘 + 모노 슬롯 번호 (콘솔 디자인 문법 유지, OS별 이모지 차이 제거)
+    const faceSvg = '<svg class="ic ic-lg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0115 0"/></svg>';
+    const faces = { F: [faceSvg, faceSvg, faceSvg], M: [faceSvg, faceSvg, faceSvg] };
     [["F","femaleRow"],["M","maleRow"]].forEach(([g, rowId]) => {
       const row = $(rowId); row.innerHTML = "";
       slots[g].forEach((slot, i) => {
         const b = document.createElement("button");
         b.className = "ann"; b.dataset.g = g; b.dataset.i = i;
         b.disabled = !slot;
-        const nameTxt = slot ? (slot.name + (slot.sim ? " · 음높이조정" : (isPremiumURI(slot.uri) ? " ⭐" : ""))) : "음성 없음";
-        b.innerHTML = `<div class="face" aria-hidden="true">${faces[g][i]}</div><div class="who">${g==="F"?"여성":"남성"} ${i+1}</div><div class="vname" title="${escapeAttr(nameTxt)}">${escapeHtml(shorten(nameTxt))}</div>`;
+        const nameTxt = slot ? (slot.name + (slot.sim ? " · 음높이조정" : (isPremiumURI(slot.uri) ? " ★" : ""))) : "음성 없음";
+        b.innerHTML = `<div class="face" aria-hidden="true">${faces[g][i]}<span class="slotno">${g}${i+1}</span></div><div class="who">${g==="F"?"여성":"남성"} ${i+1}</div><div class="vname" title="${escapeAttr(nameTxt)}">${escapeHtml(shorten(nameTxt))}</div>`;
         b.setAttribute("aria-label", `${g==="F"?"여성":"남성"} 아나운서 ${i+1}, ${nameTxt}`);
         b.setAttribute("aria-pressed", "false");
         row.appendChild(b);
@@ -938,18 +1995,63 @@
     const v = voices.find(x=>x.voiceURI===slot.uri);
     if (!v) return;
     const tips = [];
-    if (isPremium(v)) tips.push("⭐ 자연스러운 고품질 음성입니다.");
+    if (isPremium(v)) tips.push("★ 자연스러운 고품질 음성입니다.");
     else tips.push("기본 음성입니다. Edge의 Online(Natural) 음성이 더 자연스럽습니다.");
     if (slot.sim) tips.push("이 언어에 해당 성별 음성이 없어 음높이를 조정해 표현합니다.");
     el.innerHTML = `<b>${escapeHtml(v.name)}</b> (${v.lang})<br>${tips.map(escapeHtml).join("<br>")}`;
   }
 
   // ---------- Voice loading ----------
-  function loadVoices() {
-    voices = synth ? synth.getVoices() : [];
+  /* 음성 목록 확보.
+     브라우저마다 성질이 달라서 단순히 getVoices() 한 번으로는 목록을 다 못 받는다.
+      - Chrome/Edge: 첫 호출이 빈 배열일 수 있다 → voiceschanged + 짧은 폴링
+      - Edge: 엔진이 한 번 말하기 전에는 온라인 자연 음성을 일부만 보고한다
+              → 무음 발화로 예열한 뒤 다시 읽는다 (여기서 목소리 수가 크게 늘어난다)
+      - voiceschanged 는 여러 번 울린다 → 목록이 실제로 바뀔 때만 다시 그린다 */
+  let voiceSig = "", voicePollT = null, warmedUp = false;
+  function readVoices() { try { return synth ? (synth.getVoices() || []) : []; } catch (e) { return []; } }
+  function sigOf(list) { return list.map(v => v.name + "|" + v.lang).join("~"); }
+
+  function loadVoices(force) {
+    const list = readVoices();
+    const sig = sigOf(list);
+    if (!force && sig === voiceSig) return;      // 바뀐 게 없으면 선택 상태를 건드리지 않는다
+    voiceSig = sig; voices = list;
     buildSlots();
+    if (typeof renderVoiceBrowser === "function") renderVoiceBrowser();
   }
-  if (synth) { loadVoices(); synth.onvoiceschanged = loadVoices; } else { loadVoices(); }
+
+  // Edge 예열: 볼륨 0 의 공백 한 번. 사용자에게는 들리지 않는다.
+  function warmUpVoices() {
+    if (warmedUp || !synth) return;
+    warmedUp = true;
+    try {
+      const u = new SpeechSynthesisUtterance(" ");
+      u.volume = 0; u.rate = 2;
+      u.onend = u.onerror = () => setTimeout(() => loadVoices(true), 120);
+      synth.speak(u);
+      setTimeout(() => { try { synth.cancel(); } catch (e) {} loadVoices(true); }, 700);
+    } catch (e) { /* 예열 실패는 무시 — 목록은 그대로 쓴다 */ }
+  }
+
+  // 목록이 채워질 때까지 최대 10초 폴링 (Readium Speech 가 권장하는 방식)
+  function startVoicePolling() {
+    let waited = 0;
+    clearInterval(voicePollT);
+    voicePollT = setInterval(() => {
+      waited += 150;
+      loadVoices();
+      if (voices.length || waited >= 10000) {
+        clearInterval(voicePollT); voicePollT = null;
+        if (voices.length) warmUpVoices();
+      }
+    }, 150);
+  }
+  if (synth) {
+    loadVoices();
+    synth.onvoiceschanged = () => loadVoices();          // 여러 번 울려도 안전 (서명이 같으면 무시)
+    if (voices.length) warmUpVoices(); else startVoicePolling();
+  } else { loadVoices(); }
 
   function getVoice() { return voices.find(v => v.voiceURI === state.voiceURI) || null; }
   function effPitch() { return Math.min(2, Math.max(0, state.pitch * state.slotPitch)); }
@@ -1238,10 +2340,22 @@
   $("playBtn").addEventListener("click", start);
   $("stopBtn").addEventListener("click", stop);
   const pauseBtn = $("pauseBtn");
-  pauseBtn.addEventListener("click", () => {
+  const REC_SVG = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6"/></svg>';
+  let neuralPaused = false;
+  const PAUSE_SVG = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg> 일시정지';
+  const RESUME_SVG = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l12 8-12 8z"/></svg> 재개';
+  pauseBtn.addEventListener("click", async () => {
+    // AI 음성은 speechSynthesis 를 쓰지 않으므로 synth.pause() 가 아무 일도 하지 않는다.
+    // 오디오 컨텍스트를 직접 멈춘다.
+    if (typeof neuralActive === "function" && neuralActive()) {
+      neuralPaused = !neuralPaused;
+      if (neuralPaused) { await Neural.pausePlayback(); pauseBtn.innerHTML = RESUME_SVG; liveBadge.classList.remove("on"); }
+      else { await Neural.resumePlayback(); pauseBtn.innerHTML = PAUSE_SVG; liveBadge.classList.add("on"); }
+      return;
+    }
     if (!synth) return;
-    if (synth.paused) { synth.resume(); pauseBtn.textContent = "⏸ 일시정지"; liveBadge.classList.add("on"); }
-    else { synth.pause(); pauseBtn.textContent = "▶ 재개"; liveBadge.classList.remove("on"); }
+    if (synth.paused) { synth.resume(); pauseBtn.innerHTML = PAUSE_SVG; liveBadge.classList.add("on"); }
+    else { synth.pause(); pauseBtn.innerHTML = RESUME_SVG; liveBadge.classList.remove("on"); }
   });
   $("testBtn").addEventListener("click", () => {
     if (!state.voiceURI) { flash("사용 가능한 음성이 없습니다."); return; }
@@ -1259,7 +2373,7 @@
   if (!recSupported) {
     recBtn.disabled = true;
     recBtn.title = isMobileUA ? "녹음은 PC(크롬·엣지)에서 지원됩니다." : "이 브라우저에서는 녹음을 지원하지 않습니다.";
-    if (isMobileUA) recBtn.textContent = "🔴 녹음(PC 전용)";
+    if (isMobileUA) recBtn.innerHTML = REC_SVG + " 녹음(PC 전용)";
   }
 
   function pickMime() {
@@ -1301,7 +2415,7 @@
 
     mediaRecorder.start();
     recording = true;
-    recBtn.classList.add("recording"); recBtn.textContent = "⏹ 녹음 중지";
+    recBtn.classList.add("recording"); recBtn.innerHTML = '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12"/></svg> 녹음 중지' ;
     document.body.classList.add("recording");
     recResult.classList.remove("show");
     // 녹음 시작과 동시에 방송 재생
@@ -1313,7 +2427,7 @@
     // 재생 중이면 잔향까지 조금 담고 종료
     try { if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop(); } catch (_) {}
     recording = false;
-    recBtn.classList.remove("recording"); recBtn.textContent = "🔴 녹음";
+    recBtn.classList.remove("recording"); recBtn.innerHTML = REC_SVG + " 녹음";
     document.body.classList.remove("recording");
   }
   // 방송이 자연스럽게 끝나면 녹음도 종료
@@ -1526,10 +2640,11 @@
 
   // ---------- 온보딩 ----------
   const ONB = [
-    { icon:"🎙️", title:"아나운서에 오신 걸 환영합니다", body:"대본을 입력하면 <b>아나운서 목소리</b>로 읽어드립니다.<br>8개 언어, 남녀 6명의 목소리를 고를 수 있어요." },
-    { icon:"🌐", title:"언어와 목소리 고르기", body:"위쪽 <b>언어 · 목소리</b> 줄을 누르면 펼쳐집니다.<br>언어를 바꾸면 그 나라 목소리와 예시 대본으로 함께 바뀝니다." },
-    { icon:"▶️", title:"읽어보기", body:"대본을 넣고 <b>방송 시작</b>을 누르세요.<br>읽는 문장이 <b>하이라이트</b>되고, 그 문장을 탭하면 거기서부터 다시 읽습니다." },
-    { icon:"⚙️", title:"더 다듬기", body:"아래 설정에서 <b>속도·낭독 스타일·발음 사전·대화 모드</b>를 조절할 수 있어요.<br>PC에서는 <b>🔴 녹음</b>으로 음성 파일도 저장됩니다." },
+    { icon:"🎙️", title:"아나운서에 오신 걸 환영합니다", body:"대본을 입력하면 <b>아나운서 목소리</b>로 읽어드립니다.<br>8개 언어, 기기에 깔린 <b>모든 목소리</b>와 <b>AI 목소리</b>를 골라 쓸 수 있어요." },
+    { icon:"🌐", title:"언어와 목소리 고르기", body:"위쪽 <b>언어 · 목소리</b> 줄을 누르면 펼쳐집니다.<br><b>모든 목소리</b> 목록에서 ▷ 로 미리 들어보고 고르세요.<br>언어를 바꾸면 그 나라 목소리와 예시 대본으로 함께 바뀝니다." },
+    { icon:"✨", title:"AI 음성 — 더 좋은 목소리", body:"위쪽 <b>AI 음성</b>을 켜면 기기와 상관없이 같은 고품질 목소리를 씁니다.<br>처음 한 번만 내려받고(이동통신 데이터 주의) 그다음부터는 <b>오프라인</b>에서도 됩니다.<br>AI 음성일 때는 <b>WAV 파일로 바로 저장</b>도 됩니다." },
+    { icon:"▶️", title:"세 가지 모드", body:"<b>대본</b> — 긴 글을 문장 단위로 읽고 하이라이트합니다.<br><b>단어</b> — 단어 하나를 여러 목소리로 비교하고 느리게 들어봅니다.<br><b>긴 글</b> — 조각마다 합성하며 재생하고 전체를 파일로 저장합니다." },
+    { icon:"⚙️", title:"더 다듬기", body:"아래 설정에서 <b>속도·낭독 스타일·발음 사전·대화 모드</b>와 <b>버튼 효과음</b>을 조절할 수 있어요.<br>PC에서는 <b>녹음</b> 버튼으로 기기 음성도 저장됩니다." },
   ];
   let onbIdx = 0;
   function renderOnb() {
@@ -1572,7 +2687,15 @@
   // ---------- 현재 선택 요약(접이식 헤더) ----------
   function updateVoiceNow() {
     const L = LANGS.find(x => x.code === state.lang);
-    const who = (state.gender === "F" ? "여성 " : "남성 ") + (state.slotIndex + 1);
+    // AI 음성을 쓰는 중이면 실제로 읽는 목소리(페르소나 또는 혼합 이름)를 보여 준다.
+    // 예전엔 시스템 슬롯만 읽어서 '여성 1' 로 남아 있었다.
+    let who;
+    if (state.engine === "neural" && window.Supertonic && Supertonic.LANGS.includes(state.lang)) {
+      const nv = NEURAL_VOICES.find(v => v.id === state.neuralVoice);
+      who = "AI · " + (nv ? nv.name : state.neuralVoice);
+    } else {
+      who = (state.gender === "F" ? "여성 " : "남성 ") + (state.slotIndex + 1);
+    }
     $("voiceNow").textContent = `${L ? L.flag + " " + L.name : state.lang} · ${who}`;
   }
 
@@ -1594,7 +2717,7 @@
     let list = libFilter === "all" ? all : all.filter(x => x.lang === libFilter);
     if (libQuery) { const q = libQuery.toLowerCase(); list = list.filter(x => (x.title+" "+x.text).toLowerCase().includes(q)); }
     box.innerHTML = "";
-    if (!list.length) { box.innerHTML = '<div class="lib-empty">저장된 대본이 없습니다.<br>대본을 입력하고 ⭐ 대본 저장을 눌러보세요.</div>'; return; }
+    if (!list.length) { box.innerHTML = '<div class="lib-empty">저장된 대본이 없습니다.<br>대본을 입력하고 <b>대본 저장</b>을 눌러보세요.</div>'; return; }
     list.forEach((it) => {
       const i = all.indexOf(it);
       const row = document.createElement("div"); row.className = "lib-item";
@@ -1615,7 +2738,7 @@
     const list = loadLib().filter(x => x.text !== text);
     list.unshift({ title, text, lang: state.lang });
     saveLib(list); renderLib();
-    flash("⭐ 대본을 저장했습니다.");
+    flash("대본을 저장했습니다.");
   });
   $("libBtn").addEventListener("click", () => { renderLib(); $("lib").classList.toggle("show"); });
   $("libClose").addEventListener("click", () => $("lib").classList.remove("show"));
@@ -1796,7 +2919,9 @@
 
   // ---------- Persistence ----------
   const LS = "announcer-v2";
-  function save(){ try{ localStorage.setItem(LS, JSON.stringify(state)); }catch(_){} }
+  // engine·mode 는 세션 전용이다. 저장하면 다음 실행에서 모델이 없는데도 'AI 음성' 으로
+  // 표시돼 버튼을 두 번 눌러야 켜지는 등 상태가 어긋난다.
+  function save(){ try{ const { engine, mode, ...keep } = state; localStorage.setItem(LS, JSON.stringify(keep)); }catch(_){} }
   function reflect() {
     $("rate").value = state.rate; $("pitch").value = state.pitch; $("volume").value = state.volume; $("gap").value = state.gap;
     $("rateVal").textContent = Number(state.rate).toFixed(2)+"×";
@@ -1817,7 +2942,8 @@
     syncSpeedPresetHighlight();
   }
   (function load(){
-    try { const s = JSON.parse(localStorage.getItem(LS) || "null"); if (s) Object.assign(state, s); } catch(_){}
+    try { const s = JSON.parse(localStorage.getItem(LS) || "null");
+      if (s) { delete s.engine; delete s.mode; Object.assign(state, s); } } catch(_){}
   })();
   // 공유 링크가 있으면 최우선, 없을 때만 마지막 작성 대본 복원
   const fromLink = applyShareHash();
@@ -1842,6 +2968,8 @@
     const spans = Array.from(overlay.querySelectorAll("span"));
     const idx = spans.indexOf(e.target);
     if (idx < 0 || idx >= queue.length) return;
+    // AI 음성으로 읽는 중이면 기기 음성을 겹쳐 틀면 안 된다 — 신경망 루프를 그 문장부터 다시 돌린다
+    if (typeof neuralActive === "function" && neuralActive()) { jumpNeural(idx); return; }
     if (synth) synth.cancel();
     clearTimeout(gapTimer);
     speakSentence(idx);
@@ -1861,7 +2989,163 @@
   });
 
   window.addEventListener("beforeunload", () => { if (synth) synth.cancel(); });
+
+  // ══════════════════════════════════════════════════════════════════════
+  //  새 컨트롤 배선 + 신경망 경로로 '방송 시작' 라우팅
+  // ══════════════════════════════════════════════════════════════════════
+  // 효과음 / 후처리 / AI 품질
+  const sfxChk = $("sfxChk");
+  if (sfxChk) { sfxChk.checked = state.sfx;
+    sfxChk.addEventListener("change", () => { state.sfx = sfxChk.checked; if (state.sfx) FX.toggle(true); persistSettings(); }); }
+  const fxSel = $("fxPreset");
+  if (fxSel) { fxSel.value = state.fxPreset;
+    fxSel.addEventListener("change", () => { state.fxPreset = fxSel.value; FX.click(); persistSettings(); }); }
+  const stepsEl = $("steps");
+  if (stepsEl) { stepsEl.value = state.neuralSteps; $("stepsVal").textContent = state.neuralSteps;
+    stepsEl.addEventListener("input", () => { state.neuralSteps = +stepsEl.value; $("stepsVal").textContent = stepsEl.value; persistSettings(); }); }
+  const gpuChk = $("gpuChk");
+  if (gpuChk) { gpuChk.checked = state.gpu;
+    gpuChk.addEventListener("change", () => {
+      state.gpu = gpuChk.checked; persistSettings();
+      Neural.reset();                              // 다음 boot() 이 새 설정으로 엔진을 다시 만든다
+      if (state.engine === "neural") { state.engine = "system"; engineBadgeUpdate(); renderVoiceBrowser(); }
+      toast("AI 음성을 다시 켜면 적용됩니다");
+    }); }
+  $("modelClear") && $("modelClear").addEventListener("click", async () => {
+    try {
+      const e = await Neural.boot();
+      await e.uninstall();
+      state.engine = "system"; engineBadgeUpdate(); renderVoiceBrowser(); updateModelInfo();
+      toast("받아둔 AI 모델을 지웠습니다");
+    } catch (err) { showBanner("모델을 지우지 못했습니다 — " + err.message); }
+  });
+  async function updateModelInfo() {
+    const el = $("modelInfo"), src = $("modelSource");
+    const lic = $("licLink"), notice = $("noticeLink");
+    const base = "models/supertonic-3/";
+    if (lic) lic.href = base + "LICENSE";
+    if (notice) notice.href = base + "NOTICE.txt";
+    if (!el) return;
+    if (location.protocol === "file:") {
+      el.textContent = "파일을 직접 연 상태에서는 AI 음성을 쓸 수 없습니다. 웹 주소로 열어 주세요.";
+      if (src) src.textContent = "";
+      return;
+    }
+    try {
+      const e = await Neural.boot();
+      const have = await e.isInstalled();
+      const tot = await e.totalBytes();
+      el.textContent = have ? `모델 준비됨 · 약 ${(tot/1e6).toFixed(0)}MB 저장됨` : `아직 받지 않음 · 약 ${(tot/1e6).toFixed(0)}MB 필요`;
+      if (src) {
+        const info = await e.info();
+        src.textContent = "출처 · " + (info.source || "—") +
+          (info.revision ? " (리비전 " + String(info.revision).slice(0, 10) + "…)" : "");
+      }
+    } catch (err) { el.textContent = "모델 정보를 읽을 수 없습니다."; }
+  }
+  // 음성 브라우저 배선
+  $("vbSearch") && $("vbSearch").addEventListener("input", (e) => { vbFilter = e.target.value; renderVoiceBrowser(); });
+  $("mixRatio") && $("mixRatio").addEventListener("input", (e) => { $("mixRatioVal").textContent = Math.round(e.target.value * 100) + "%"; });
+  $("mixMake") && $("mixMake").addEventListener("click", mixVoices);
+  $("mixDelete") && $("mixDelete").addEventListener("click", () => {
+    saveMixes({}); if (!NEURAL_VOICES.find(v => v.id === state.neuralVoice)) state.neuralVoice = "F3";
+    renderVoiceBrowser(); renderMixOptions(); persistSettings(); toast("만든 목소리를 모두 지웠습니다");
+  });
+
+  // ── 신경망 낭독: 문장 단위로 합성하면서 재생. 하이라이트/진행률은 기존 것을 그대로 쓴다. ──
+  function neuralActive() {
+    return state.engine === "neural" && window.Supertonic && Supertonic.LANGS.includes(state.lang);
+  }
+  // 재생 중 문장을 탭했을 때: 지금 루프를 끊고 그 문장부터 다시 시작한다
+  function jumpNeural(idx) {
+    if (neuralAbort) neuralAbort.abort();
+    Neural.stopPlayback();
+    setTimeout(() => { if (state.engine === "neural") startNeural(idx); }, 40);
+  }
+  async function startNeural(from) {
+    if (from == null) {
+      queue = splitSentences(script.value);
+      if (!queue.length) { flash("읽을 대본이 없습니다."); return; }
+    }
+    const startAt = from || 0;
+    neuralAbort = new AbortController();
+    setTransport(true); cursor = -1; cuesReady = false; updateMeta();
+    if (!from && state.chime) { await playChime(); if (!playing) return; }
+    if (!from) { startBgm(); playT0 = now(); }
+    vuStart();
+    try {
+      const e = await Neural.ensureReady(dlProgress); dlProgress(null);
+      const style = await Neural.styleFor(state.neuralVoice);
+      for (let i = startAt; i < queue.length; i++) {
+        if (!playing || neuralAbort.signal.aborted) break;
+        cursor = i; renderOverlay(); updateMeta();
+        queue[i]._s = (now() - playT0) / 1000;
+        const res = await e.synthesize(preprocess(queue[i].text), {
+          lang: state.lang, style, steps: state.neuralSteps, speed: 1.05, signal: neuralAbort.signal,
+        });
+        if (!playing || neuralAbort.signal.aborted) break;
+        await Neural.play(res.pcm, res.sampleRate, { rate: state.rate });
+        queue[i]._e = (now() - playT0) / 1000;
+        if (i < queue.length - 1) await new Promise(r => setTimeout(r, state.gap * 1000));
+      }
+      if (playing) finish();
+    } catch (err) {
+      if (err && err.name === "AbortError") { /* 사용자가 정지 */ }
+      else {
+        FX.error();
+        showBanner("AI 음성 재생 실패 — " + err.message + " · 기기 음성으로 읽습니다");
+        state.engine = "system"; engineBadgeUpdate();
+        setTransport(false); vuStop();
+        return start();                                   // 시스템 음성으로 재시도
+      }
+      setTransport(false);
+    } finally { vuStop(); neuralAbort = null; }
+  }
+  // 기존 start/stop 을 감싸 엔진에 따라 분기한다 (원본 함수는 그대로 둔다)
+  const _origStart = start, _origStop = stop;
+  start = function () {
+    FX.start();
+    return neuralActive() ? startNeural() : _origStart();
+  };
+  stop = function () {
+    if (neuralAbort) neuralAbort.abort();
+    Neural.stopPlayback(); vuStop(); FX.stopSfx();
+    return _origStop();
+  };
+  // 위에서 이미 바인딩된 리스너를 새 함수로 교체한다
+  (function rebindTransport() {
+    const play = $("playBtn"), stopB = $("stopBtn");
+    const np = play.cloneNode(true), ns = stopB.cloneNode(true);
+    play.parentNode.replaceChild(np, play); stopB.parentNode.replaceChild(ns, stopB);
+    np.addEventListener("click", () => start());
+    ns.addEventListener("click", () => stop());
+  })();
+
+  // 재생 상태에 따라 ON AIR 표시
+  const _origSetTransport = setTransport;
+  setTransport = function (on) {
+    document.body.classList.toggle("playing", !!on);
+    if (on) vuStart(); else vuStop();
+    return _origSetTransport(on);
+  };
+
+  // 언어가 바뀌면 배지/목록 갱신
+  langbar.addEventListener("click", () => { setTimeout(() => { engineBadgeUpdate(); renderVoiceBrowser(); }, 0); });
+
+  // 초기화
+  restoreSettings();
+  if (sfxChk) sfxChk.checked = state.sfx;
+  if (fxSel) fxSel.value = state.fxPreset;
+  if (stepsEl) { stepsEl.value = state.neuralSteps; $("stepsVal").textContent = state.neuralSteps; }
+  if (gpuChk) gpuChk.checked = state.gpu;
+  engineBadgeUpdate(); renderMixOptions(); renderVoiceBrowser(); renderWordHistory(); setMode("script");
+  updateModelInfo();
+  // 첫 사용자 제스처에서 오디오 컨텍스트를 깨운다 (자동재생 정책)
+  ["pointerdown", "keydown"].forEach(ev => window.addEventListener(ev, function once() {
+    FX.ctx(); ["pointerdown", "keydown"].forEach(e2 => window.removeEventListener(e2, once));
+  }, { once: false }));
 })();
+
 </script>
 <script>
 // PWA 서비스 워커 등록 (http/https에서만 — file://에서는 조용히 건너뜀)

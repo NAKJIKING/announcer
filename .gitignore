@@ -1,0 +1,3 @@
+# setup-ai 워크플로가 채우는 큰 파일들은 소스 관리 대상이 아니다.
+# (vendor/ models/ 는 워크플로가 직접 커밋하므로 여기서 제외하지 않는다)
+test/fixtures/
