@@ -1,7 +1,7 @@
 // 아나운서 서비스 워커 v6 — 강제 갱신 + AI 모델 캐시 보존
 // 이전 버전이 옛 화면을 캐시에 붙잡고 있던 문제를 해결하기 위해,
 // 설치 즉시 모든 옛 캐시를 삭제하고, HTML/JS는 항상 네트워크에서 받는다.
-const CACHE = 'announcer-v6';
+const CACHE = 'announcer-v7';
 
 self.addEventListener('install', () => {
   self.skipWaiting();   // 기다리지 않고 즉시 새 워커로 교체

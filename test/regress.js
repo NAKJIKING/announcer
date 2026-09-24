@@ -158,7 +158,7 @@ const ck = (name, cond, detail="") => (cond ? pass : fail).push(name + (detail ?
 
 
   // [모드 탭]
-  ck("모드 탭 3개", (await p.$$eval(".modebar button", e=>e.length)) === 3);
+  ck("모드 탭 4개", (await p.$$eval(".modebar button", e=>e.length)) === 4, (await p.$$eval(".modebar button", e=>e.length)) + "개");
   ck("대본 탭이 기본", await p.evaluate(()=>!document.getElementById("paneScript").hidden && document.getElementById("paneWord").hidden));
   await p.click("#modeWord"); await p.waitForTimeout(200);
   ck("단어 탭 전환", await p.evaluate(()=>!document.getElementById("paneWord").hidden && document.getElementById("paneScript").hidden));
@@ -171,6 +171,10 @@ const ck = (name, cond, detail="") => (cond ? pass : fail).push(name + (detail ?
   await p.click("#modeLong"); await p.waitForTimeout(200);
   ck("긴 글 탭 전환", await p.evaluate(()=>!document.getElementById("paneLong").hidden));
   ck("긴 글 AI 필요 안내", (await p.textContent("#lfHint")).includes("AI"));
+  await p.click("#modePolish"); await p.waitForTimeout(400);
+  ck("다듬기 탭 전환", await p.evaluate(()=>!document.getElementById("panePolish").hidden));
+  ck("다듬기: 파일 전엔 본문 숨김", await p.evaluate(()=>document.getElementById("polishBody").hidden));
+  ck("다듬기: 기기 밖 전송 없음 안내", (await p.textContent("#panePolish")).includes("기기 밖으로 나가지 않습니다"));
   await p.click("#modeScript"); await p.waitForTimeout(200);
 
   // [음성 브라우저]

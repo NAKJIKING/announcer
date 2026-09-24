@@ -455,8 +455,23 @@
   .ann.active .slotno { color: var(--accent); }
   .chip .ic, .act .ic { margin-right: 2px; }
 
+  /* ── 다듬기 모드 ── */
+  .drop { border: 1px dashed var(--border-ctl); background: var(--panel2); padding: 26px 16px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer;
+    color: var(--text-mid); text-align: center; transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease); }
+  .drop:hover, .drop.over { background: var(--surface-3); border-color: var(--accent); color: var(--text); }
+  .drop:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .pstyles { grid-template-columns: repeat(3, minmax(0,1fr)) !important; }
+  @media (max-width: 560px) { .pstyles { grid-template-columns: repeat(3, minmax(0,1fr)) !important; } }
+  .ptab { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 11.5px; }
+  .ptab th, .ptab td { padding: 6px 8px; border-bottom: 1px solid var(--border); text-align: right; }
+  .ptab th:first-child, .ptab td:first-child { text-align: left; font-family: inherit; font-size: 12.5px; color: var(--text-mid); }
+  .ptab th { color: var(--text-dim); font-weight: 400; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+  .ptab .good { color: var(--accent); }
+  .ptab .same { color: var(--text-dim); }
+
   /* ── 모드 탭 ── */
-  .modebar { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 1px;
+  .modebar { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 1px;
              background: var(--border); border: 1px solid var(--border); margin-bottom: 1px; }
   .modebar button { background: var(--panel2); color: var(--text-mid); border: 0; padding: 10px 8px;
     font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; display: flex; align-items: center;
@@ -617,6 +632,9 @@
       <button role="tab" id="modeLong" data-mode="long" aria-selected="false" aria-controls="paneLong">
         <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 11h16M4 16h16M4 21h9"/></svg>긴 글
       </button>
+      <button role="tab" id="modePolish" data-mode="polish" aria-selected="false" aria-controls="panePolish">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18v-4M12 18V8M19 18v-7"/><path d="M3 21h18"/></svg>다듬기
+      </button>
     </div>
 
     <div class="engine-row">
@@ -755,6 +773,53 @@
       <div class="word-grid" id="wordGrid"></div>
       <div class="section-label" style="margin-top:14px">최근 찾은 단어</div>
       <div class="word-hist" id="wordHist"></div>
+    </div>
+
+    <div class="mode-pane" id="panePolish" role="tabpanel" aria-labelledby="modePolish" hidden>
+      <p class="hint" style="margin-bottom:10px">
+        직접 녹음한 목소리를 방송용으로 다듬습니다. 잡음을 줄이고, 탁한 저음을 정리하고,
+        또렷함을 올리고, 들쭉날쭉한 음량을 고른 뒤 방송 기준 음량(−16 LUFS)에 맞춥니다.
+        <strong>파일은 기기 밖으로 나가지 않습니다.</strong>
+      </p>
+
+      <div class="drop" id="polishDrop" tabindex="0" role="button" aria-label="음성 파일 고르기">
+        <svg class="ic ic-lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M8 8l4-4 4 4"/><path d="M4 20h16"/></svg>
+        <span id="polishDropText">음성 파일을 끌어다 놓거나 눌러서 고르세요</span>
+        <span class="hint" style="font-size:11px">m4a · mp3 · wav · webm · ogg</span>
+      </div>
+      <input type="file" id="polishFile" accept="audio/*,.m4a,.mp3,.wav,.webm,.ogg" hidden>
+
+      <div id="polishBody" hidden>
+        <div class="section-label" style="margin-top:14px">어떻게 다듬을까요</div>
+        <div class="styles pstyles" id="polishPresets" role="radiogroup" aria-label="다듬기 방식"></div>
+
+        <div class="vb-tools" style="margin-top:10px">
+          <button class="act play" id="polishRun">
+            <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18v-4M12 18V8M19 18v-7"/><path d="M3 21h18"/></svg>다듬기
+          </button>
+          <button class="act" id="polishA" disabled>
+            <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l12 8-12 8z"/></svg>원본 듣기
+          </button>
+          <button class="act" id="polishB" disabled>
+            <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l12 8-12 8z"/></svg>다듬은 것 듣기
+          </button>
+          <button class="act" id="polishStop" disabled>
+            <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12"/></svg>정지
+          </button>
+          <button class="act" id="polishSave" disabled>
+            <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M8 11l4 4 4-4M5 20h14"/></svg>WAV 저장
+          </button>
+        </div>
+
+        <div class="dl-wrap" id="polishProg" style="margin-top:10px"><div class="dl-track"><div class="dl-fill" id="polishFill"></div></div>
+          <div class="dl-text"><span id="polishStage">준비</span></div></div>
+
+        <div id="polishReport" hidden>
+          <div class="section-label" style="margin-top:14px">처리 전후 (숫자로 확인)</div>
+          <table class="ptab" id="polishTable"></table>
+          <p class="hint" id="polishVerdict" style="margin-top:8px"></p>
+        </div>
+      </div>
     </div>
 
     <div class="mode-pane" id="paneLong" role="tabpanel" aria-labelledby="modeLong" hidden>
@@ -1585,13 +1650,14 @@
   function setMode(m, opts) {
     if (m !== state.mode) stopEverything();      // 모드를 넘나들 때 재생이 남아 있으면 트랜스포트 상태가 꼬인다
     state.mode = m;
-    ["script", "word", "long"].forEach(k => {
+    ["script", "word", "long", "polish"].forEach(k => {
       const pane = $("pane" + k[0].toUpperCase() + k.slice(1));
       const tab = $("mode" + k[0].toUpperCase() + k.slice(1));
       if (pane) pane.hidden = (k !== m);
       if (tab) { tab.classList.toggle("active", k === m); tab.setAttribute("aria-selected", k === m ? "true" : "false"); tab.tabIndex = (k === m) ? 0 : -1; }
     });
     if (m === "long") updateLongStats();
+    if (m === "polish" && typeof refreshPolishUI === "function") { ensurePolishLib().then(() => { renderPolishPresets(); refreshPolishUI(); }).catch(() => {}); }
     // 키보드로 탭을 넘길 때는 입력칸이 포커스를 가로채면 안 된다 (tablist 는 탭에 포커스가 남아야 한다)
     if (m === "word") { renderWordHistory(); if (!(opts && opts.keepFocus)) setTimeout(() => $("wordInput") && $("wordInput").focus(), 30); }
   }
@@ -1659,6 +1725,7 @@
     lfPaused = false; wordGen++;             // 진행 중인 단어 반복도 폐기
     if (typeof neuralPaused !== "undefined" && neuralPaused) { neuralPaused = false; pauseBtn.innerHTML = PAUSE_SVG; }
     Neural.resumePlayback(); Neural.stopPlayback();
+    if (typeof Polish !== "undefined") { Polish.stop(); if (typeof refreshPolishUI === "function") refreshPolishUI(); }
     if (typeof setLfPauseLabel === "function") setLfPauseLabel();
     if (synth) synth.cancel();
     if (typeof gapTimer !== "undefined") clearTimeout(gapTimer);
@@ -1773,6 +1840,226 @@
     a.download = ($("wordInput").value || "word").replace(/[^\w가-힣]+/g, "_") + ".wav";
     a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); FX.done();
   });
+
+
+  // ══════════════════════════════════════════════════════════════════════
+  //  목소리 다듬기 — 녹음한 음성 파일을 방송용으로 후처리
+  //  DSP 는 engine/voice-polish.js (tools/voice_polish.py 와 같은 체인).
+  //  큰 파일에서 UI 가 멈추지 않도록 처리는 Worker 에서 돌린다.
+  // ══════════════════════════════════════════════════════════════════════
+  const Polish = (() => {
+    let srcBuf = null, srcName = "", outPcm = null, outSr = 0, preset = "broadcast";
+    let node = null, worker = null, busy = false;
+
+    function polishURL() { return new URL("engine/voice-polish.js", location.href).href; }
+    function makeWorker() {
+      // 워커 안에서 DSP 모듈을 importScripts 로 불러온다 (별도 워커 파일이 필요 없다)
+      const code = 'importScripts(' + JSON.stringify(polishURL()) + ');\n' +
+        'self.onmessage = function (e) {\n' +
+        '  var d = e.data;\n' +
+        '  try {\n' +
+        '    var r = VoicePolish.polish(d.pcm, d.sr, { preset: d.preset,\n' +
+        '      onProgress: function (p, stage) { self.postMessage({ type: "progress", p: p, stage: stage }); } });\n' +
+        '    self.postMessage({ type: "done", pcm: r.pcm, before: r.before, after: r.after }, [r.pcm.buffer]);\n' +
+        '  } catch (err) { self.postMessage({ type: "error", message: String(err && err.message || err) }); }\n' +
+        '};';
+      return new Worker(URL.createObjectURL(new Blob([code], { type: "text/javascript" })));
+    }
+
+    async function load(file) {
+      const c = FX.ctx(); if (!c) throw new Error("이 브라우저에서 오디오를 열 수 없습니다.");
+      const buf = await file.arrayBuffer();
+      const decoded = await c.decodeAudioData(buf);
+      // 모노로 합친다
+      const n = decoded.length, pcm = new Float32Array(n);
+      for (let ch = 0; ch < decoded.numberOfChannels; ch++) {
+        const d = decoded.getChannelData(ch);
+        for (let i = 0; i < n; i++) pcm[i] += d[i];
+      }
+      if (decoded.numberOfChannels > 1) for (let i = 0; i < n; i++) pcm[i] /= decoded.numberOfChannels;
+      srcBuf = { pcm, sr: decoded.sampleRate }; srcName = file.name || "recording";
+      outPcm = null; outSr = 0;
+      return srcBuf;
+    }
+
+    function run(onProgress) {
+      if (!srcBuf) return Promise.reject(new Error("먼저 파일을 고르세요."));
+      if (busy) return Promise.reject(new Error("아직 처리 중입니다."));
+      busy = true;
+      return new Promise((res, rej) => {
+        try { if (!worker) worker = makeWorker(); } catch (e) { busy = false; return rej(e); }
+        const copy = srcBuf.pcm.slice();
+        worker.onmessage = (e) => {
+          const d = e.data;
+          if (d.type === "progress") { onProgress && onProgress(d.p, d.stage); return; }
+          busy = false;
+          if (d.type === "error") { rej(new Error(d.message)); return; }
+          outPcm = d.pcm; outSr = srcBuf.sr;
+          res({ before: d.before, after: d.after });
+        };
+        worker.onerror = (e) => { busy = false; rej(new Error(e.message || "처리 중 오류")); };
+        worker.postMessage({ pcm: copy, sr: srcBuf.sr, preset }, [copy.buffer]);
+      });
+    }
+
+    function play(which) {
+      stop();
+      const c = FX.ctx(); if (!c) return;
+      const pcm = which === "after" ? outPcm : (srcBuf && srcBuf.pcm);
+      const sr = which === "after" ? outSr : (srcBuf && srcBuf.sr);
+      if (!pcm) return;
+      const b = c.createBuffer(1, pcm.length, sr);
+      b.copyToChannel(pcm, 0);
+      node = c.createBufferSource(); node.buffer = b;
+      const an = FX.ensureAnalyser();
+      node.connect(an); an.connect(c.destination);
+      node.onended = () => { node = null; refresh(); };
+      node.start(); vuStart(); refresh();
+    }
+    function stop() { if (node) { try { node.onended = null; node.stop(); } catch (e) {} node = null; } vuStop(); }
+
+    function setPreset(p) { preset = p; }
+    function getPreset() { return preset; }
+    function hasSource() { return !!srcBuf; }
+    function hasOutput() { return !!outPcm; }
+    function playing() { return !!node; }
+    function duration() { return srcBuf ? srcBuf.pcm.length / srcBuf.sr : 0; }
+    function save() {
+      if (!outPcm) return;
+      const wav = VoicePolish.toWav(outPcm, outSr);
+      const base = srcName.replace(/\.[^.]+$/, "") || "voice";
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([wav], { type: "audio/wav" }));
+      a.download = base + "_" + preset + ".wav";
+      a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 6000);
+    }
+    function dispose() { stop(); if (worker) { worker.terminate(); worker = null; } }
+    return { load, run, play, stop, setPreset, getPreset, hasSource, hasOutput, playing, duration, save, dispose,
+             get name() { return srcName; } };
+  })();
+
+  // ── 다듬기 UI ──
+  let polishLoaded = false;
+  async function ensurePolishLib() {
+    if (polishLoaded || window.VoicePolish) { polishLoaded = true; return; }
+    await new Promise((res, rej) => {
+      const el = document.createElement("script");
+      el.src = "engine/voice-polish.js";
+      el.onload = res; el.onerror = () => rej(new Error("다듬기 기능을 불러오지 못했습니다. 웹주소(http/https)로 열어 주세요."));
+      document.head.appendChild(el);
+    });
+    polishLoaded = true;
+  }
+  function renderPolishPresets() {
+    const box = $("polishPresets"); if (!box || !window.VoicePolish) return;
+    box.innerHTML = "";
+    Object.keys(VoicePolish.PRESETS).forEach(k => {
+      const p = VoicePolish.PRESETS[k];
+      const b = document.createElement("button");
+      b.type = "button"; b.dataset.k = k; b.setAttribute("role", "radio");
+      const on = Polish.getPreset() === k;
+      b.className = on ? "active" : "";
+      b.setAttribute("aria-checked", on ? "true" : "false");
+      b.tabIndex = on ? 0 : -1;
+      b.title = p.desc;
+      b.textContent = p.label;
+      b.addEventListener("click", () => {
+        FX.click(); Polish.setPreset(k); renderPolishPresets();
+        $("polishReport").hidden = true;                 // 설정이 바뀌면 이전 결과는 무효
+        $("polishSave").disabled = true; $("polishB").disabled = true;
+      });
+      box.appendChild(b);
+    });
+  }
+  function refreshPolishUI() {
+    const has = Polish.hasSource(), out = Polish.hasOutput(), pl = Polish.playing();
+    $("polishBody").hidden = !has;
+    $("polishRun").disabled = !has;
+    $("polishA").disabled = !has || pl;
+    $("polishB").disabled = !out || pl;
+    $("polishStop").disabled = !pl;
+    $("polishSave").disabled = !out;
+  }
+  const refresh = refreshPolishUI;
+
+  function fmtRow(name, a, b, unit, better) {
+    // better: 'down' 이면 작아질수록 좋음, 'up' 이면 커질수록, 'target' 이면 변화만 표시
+    const d = b - a;
+    let cls = "same";
+    if (better === "down" && d < -0.3) cls = "good";
+    if (better === "up" && d > 0.3) cls = "good";
+    const sign = d >= 0 ? "+" : "";
+    return `<tr><td>${name}</td><td>${a.toFixed(1)}</td><td class="${cls}">${b.toFixed(1)}</td>` +
+           `<td class="${cls}">${sign}${d.toFixed(1)}</td><td class="same">${unit}</td></tr>`;
+  }
+  function showPolishReport(before, after) {
+    const t = $("polishTable");
+    t.innerHTML = "<tr><th>항목</th><th>전</th><th>후</th><th>변화</th><th></th></tr>"
+      + fmtRow("라우드니스", before.lufs, after.lufs, "LUFS", "up")
+      + fmtRow("트루피크", before.truePeak, after.truePeak, "dBTP", "target")
+      + fmtRow("신호대잡음", before.snr, after.snr, "dB", "up")
+      + fmtRow("음량 편차", before.variation, after.variation, "dB", "down");
+    const bits = [];
+    if (after.variation < before.variation - 0.5) bits.push(`음량이 ${(before.variation - after.variation).toFixed(1)}dB 고르게`);
+    if (after.snr > before.snr + 0.5) bits.push(`잡음이 ${(after.snr - before.snr).toFixed(1)}dB 줄어`);
+    bits.push(`방송 기준 음량(−16 LUFS)에 맞췄고 최고음은 ${after.truePeak.toFixed(1)}dBTP 로 안전합니다`);
+    $("polishVerdict").textContent = bits.join(", ") + ".";
+    $("polishReport").hidden = false;
+  }
+
+  async function polishPick(file) {
+    if (!file) return;
+    try {
+      $("polishDropText").textContent = "여는 중…";
+      await ensurePolishLib();
+      const s = await Polish.load(file);
+      const secs = Math.round(s.pcm.length / s.sr);
+      $("polishDropText").textContent = file.name + " · " + Math.floor(secs / 60) + "분 " + (secs % 60) + "초";
+      $("polishReport").hidden = true;
+      renderPolishPresets(); refreshPolishUI();
+      hideBanner(); FX.toggle(true);
+    } catch (e) {
+      $("polishDropText").textContent = "음성 파일을 끌어다 놓거나 눌러서 고르세요";
+      FX.error();
+      // decodeAudioData 는 브라우저가 그 코덱을 모르면 실패한다. 원인을 짚어 준다.
+      const ext = (file.name.match(/\.([^.]+)$/) || [, ""])[1].toLowerCase();
+      const codec = !e.message || /decode|encoding|unable|unsupported|format/i.test(e.message);
+      showBanner(codec
+        ? `이 브라우저가 ${ext ? "." + ext + " " : ""}형식을 열지 못했습니다. WAV 나 MP3 로 바꿔서 다시 시도해 보세요.`
+        : "파일을 열 수 없습니다 — " + e.message);
+    }
+  }
+  const polishDrop = $("polishDrop");
+  if (polishDrop) {
+    polishDrop.addEventListener("click", () => $("polishFile").click());
+    polishDrop.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("polishFile").click(); } });
+    ["dragenter", "dragover"].forEach(ev => polishDrop.addEventListener(ev, (e) => { e.preventDefault(); polishDrop.classList.add("over"); }));
+    ["dragleave", "drop"].forEach(ev => polishDrop.addEventListener(ev, (e) => { e.preventDefault(); polishDrop.classList.remove("over"); }));
+    polishDrop.addEventListener("drop", (e) => { const f = e.dataTransfer && e.dataTransfer.files[0]; if (f) polishPick(f); });
+  }
+  $("polishFile") && $("polishFile").addEventListener("change", (e) => polishPick(e.target.files[0]));
+
+  $("polishRun") && $("polishRun").addEventListener("click", async () => {
+    const prog = $("polishProg"), fill = $("polishFill"), stage = $("polishStage");
+    try {
+      await ensurePolishLib();
+      $("polishRun").disabled = true; prog.classList.add("show");
+      fill.style.width = "0%"; stage.textContent = "시작";
+      FX.start();
+      const r = await Polish.run((p, st) => { fill.style.width = Math.round(p * 100) + "%"; stage.textContent = st; });
+      prog.classList.remove("show");
+      showPolishReport(r.before, r.after);
+      refreshPolishUI(); FX.done();
+      toast("다듬었습니다 — 원본과 번갈아 들어보세요");
+    } catch (e) {
+      prog.classList.remove("show"); FX.error();
+      showBanner("다듬기 실패 — " + e.message);
+    } finally { $("polishRun").disabled = !Polish.hasSource(); refreshPolishUI(); }
+  });
+  $("polishA") && $("polishA").addEventListener("click", () => { FX.click(); Polish.play("before"); });
+  $("polishB") && $("polishB").addEventListener("click", () => { FX.click(); Polish.play("after"); });
+  $("polishStop") && $("polishStop").addEventListener("click", () => { FX.stopSfx(); Polish.stop(); refreshPolishUI(); });
+  $("polishSave") && $("polishSave").addEventListener("click", () => { FX.done(); Polish.save(); });
 
   // ── 긴 글 모드 ──
 
