@@ -1306,15 +1306,13 @@
     { id: "F1", name: "수연 · 차분한", sub: "female · calm · low", gender: "F" },
     { id: "F2", name: "하늘 · 밝은", sub: "female · bright · youthful", gender: "F" },
     { id: "F4", name: "민서 · 또렷한", sub: "female · crisp · confident", gender: "F" },
-    { id: "F5", name: "はな 유나 · 부드러운", sub: "female · gentle · soothing", gender: "F" },
+    { id: "F5", name: "유나 · 부드러운", sub: "female · gentle · soothing", gender: "F" },
     { id: "M3", name: "준호 · 앵커", sub: "male · authoritative · trustworthy", gender: "M", hq: true },
     { id: "M1", name: "도현 · 활기찬", sub: "male · lively · confident", gender: "M" },
     { id: "M2", name: "성민 · 묵직한", sub: "male · deep · serious", gender: "M" },
     { id: "M4", name: "지훈 · 편안한", sub: "male · soft · friendly", gender: "M" },
     { id: "M5", name: "태윤 · 이야기꾼", sub: "male · warm · storytelling", gender: "M" },
   ];
-  // 이름 오타 보정 (F5 는 한국어 이름만)
-  NEURAL_VOICES[4].name = "유나 · 부드러운";
 
   function engineBadgeUpdate() {
     const b = $("engineBadge"); if (!b) return;
